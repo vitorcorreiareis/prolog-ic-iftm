@@ -437,39 +437,124 @@ questions:[
 
 {id:5,title:'Busca sem Informação',sub:'BFS, DFS e Variações em Prolog',
 content:`<div class="content">
-<h2>Busca Cega</h2>
-<p>Algoritmos de busca sem informação (cega) exploram o espaço de estados sem conhecimento do objetivo, exceto para reconhecê-lo.</p>
+<h2>Busca Cega (Não Informada)</h2>
+<p>Algoritmos de busca cega exploram o espaço de estados de forma sistemática <strong>sem usar nenhuma informação sobre o objetivo além de reconhecê-lo</strong>. O único conhecimento é: (a) qual é o estado inicial, (b) quais operadores geram novos estados, (c) como reconhecer o objetivo.</p>
+<p>A principal diferença entre as estratégias é <strong>a ordem em que os estados são expandidos</strong>: DFS mergulha fundo, BFS expande em largura.</p>
+
 <h3>Grafo de exemplo</h3>
-${code(`% aresta(Origem, Destino)
-aresta(a, b). aresta(a, c). aresta(b, d).
-aresta(b, e). aresta(c, f). aresta(d, g).`)}
-<h3>DFS em Prolog — Natural!</h3>
-${code(`% DFS é o comportamento padrão do Prolog (recursão profunda primeiro)
-dfs(Goal, Goal, _, [Goal]).
-dfs(Start, Goal, Visited, [Start|Path]) :-
-    aresta(Start, Next),
-    \\+ member(Next, Visited),   % evitar ciclos
-    dfs(Next, Goal, [Next|Visited], Path).
+${code(`% Definimos o grafo com o predicado ligacao/2
+% Cada fato representa uma aresta do grafo
+ligacao(a, b). ligacao(a, f).
+ligacao(b, c). ligacao(c, d).
+ligacao(d, e). ligacao(f, e).
 
-% ?- dfs(a, g, [a], Path).`)}
-<h3>BFS em Prolog — Usa fila</h3>
-${code(`% BFS: mantém fila de caminhos a expandir
-bfs([[Goal|Resto]|_], Goal, [Goal|Resto]).
-bfs([[Node|Caminho]|Fila], Goal, Path) :-
-    findall([Viz,Node|Caminho],
-            (aresta(Node,Viz), \\+ member(Viz,[Node|Caminho])),
-            Filhos),
-    append(Fila, Filhos, NovaFila),   % FIFO: adiciona ao final
-    bfs(NovaFila, Goal, Path).
+% Para grafo não-direcionado, adicionar as inversas:
+% aresta(X,Y) :- ligacao(X,Y) ; ligacao(Y,X).`)}
 
-% Usar: bfs([[inicio]], objetivo, Caminho)`)}
-<h3>Comparação dos algoritmos</h3>
-<ul>
-  <li><strong>BFS:</strong> Completo ✓ | Ótimo (custo uniforme) ✓ | Memória O(b^d) — alto</li>
-  <li><strong>DFS:</strong> Não ótimo | Baixa memória O(bd) | Pode não terminar sem controle de ciclos</li>
-  <li><strong>DFS Limitado:</strong> DFS com limite de profundidade — evita loops infinitos</li>
-  <li><strong>ID-DFS:</strong> DFS iterativo em profundidade — memória do DFS + completude do BFS</li>
-</ul>
+<h3>DFS — Busca em Profundidade</h3>
+<p><strong>Ideia:</strong> expandir sempre o nó mais profundo primeiro. Em Prolog, isso é natural — a estratégia de resolução SLD já é depth-first. O truque é manter uma lista de <em>visitados</em> para evitar ciclos, e usar <code>reverse/2</code> no caso base para corrigir a ordem do caminho.</p>
+${code(`% Interface principal — inicia com [Origem] já visitado
+dfs(Origem, Destino, Caminho) :-
+    dfs_aux(Origem, Destino, [Origem], Caminho).
+
+% CASO BASE: chegamos ao destino
+% Visitados está ao contrário (adicionamos na frente), então revertemos
+dfs_aux(Destino, Destino, Visitados, Caminho) :-
+    reverse(Visitados, Caminho).
+
+% CASO RECURSIVO: expandir para vizinho não visitado
+dfs_aux(Atual, Destino, Visitados, Caminho) :-
+    ligacao(Atual, Proximo),           % encontra vizinho
+    \\+ member(Proximo, Visitados),     % não foi visitado
+    dfs_aux(Proximo, Destino, [Proximo|Visitados], Caminho).
+
+% Uso: ?- dfs(a, e, Caminho).
+%   Caminho = [a, b, c, d, e]  (ou outra rota, via backtracking)`)}
+<p><strong>Por que reverse?</strong> Adicionamos os nós na frente da lista <code>[Proximo|Visitados]</code> (O(1)) em vez de no final (O(n)). No caso base, revertemos uma única vez para obter a ordem correta.</p>
+
+<h3>DFS com Profundidade Limitada (DLS)</h3>
+<p>Evita loops infinitos em grafos com ciclos ao impor um limite de profundidade.</p>
+${code(`% dls/4: DFS com limite de profundidade Limite
+dls(Origem, Destino, Limite, Caminho) :-
+    dls_aux(Origem, Destino, Limite, [Origem], Caminho).
+
+% CASO BASE: encontrou o destino
+dls_aux(Destino, Destino, _, Visitados, Caminho) :-
+    reverse(Visitados, Caminho).
+
+% CASO RECURSIVO: só expande se Limite > 0
+dls_aux(Atual, Destino, Limite, Visitados, Caminho) :-
+    Limite > 0,
+    ligacao(Atual, Proximo),
+    \\+ member(Proximo, Visitados),
+    LimiteNovo is Limite - 1,
+    dls_aux(Proximo, Destino, LimiteNovo, [Proximo|Visitados], Caminho).`)}
+
+<h3>IDDFS — Aprofundamento Iterativo</h3>
+<p>Combina memória do DFS (O(b×d)) com completude/otimalidade do BFS. Faz DLS com limite 0, 1, 2, ... até encontrar.</p>
+${code(`% iddfs/3: tenta DLS com limite crescente
+iddfs(Origem, Destino, Caminho) :-
+    between(0, inf, Limite),           % gera 0,1,2,...
+    dls(Origem, Destino, Limite, Caminho),
+    !.                                 % para no primeiro sucesso
+
+% Uso: ?- iddfs(a, e, Caminho).`)}
+
+<h3>BFS — Busca em Largura</h3>
+<p><strong>Ideia:</strong> expandir nós nível a nível. Usa uma <strong>fila FIFO</strong> de caminhos. Garante encontrar o caminho com <em>menos arestas</em>.</p>
+${code(`% bfs/3: interface principal
+bfs(Origem, Destino, Caminho) :-
+    bfs_aux([[Origem]], Destino, Caminho).
+
+% CASO BASE: a frente da fila já chegou no destino
+bfs_aux([[Destino|Resto]|_], Destino, Caminho) :-
+    reverse([Destino|Resto], Caminho).
+
+% CASO RECURSIVO: expande o primeiro caminho da fila
+bfs_aux([[Atual|Visitados]|FilaResto], Destino, Caminho) :-
+    findall(
+        [Proximo, Atual|Visitados],            % novo caminho expandido
+        (ligacao(Atual, Proximo),              % vizinho de Atual
+         \\+ member(Proximo, [Atual|Visitados])), % não visitado
+        Filhos),
+    append(FilaResto, Filhos, FilaNova),       % FIFO: novos vão no final
+    bfs_aux(FilaNova, Destino, Caminho).
+
+% Uso: ?- bfs(a, e, Caminho).
+%   Caminho = [a, f, e]  (caminho mais curto em número de arestas)`)}
+
+<h3>Análise e Comparação</h3>
+<table style="width:100%;border-collapse:collapse;font-size:13px;margin:10px 0">
+<tr style="background:var(--surface2)">
+  <th style="padding:6px;text-align:left;border:1px solid var(--border)">Algoritmo</th>
+  <th style="padding:6px;border:1px solid var(--border)">Completo?</th>
+  <th style="padding:6px;border:1px solid var(--border)">Ótimo?</th>
+  <th style="padding:6px;border:1px solid var(--border)">Tempo</th>
+  <th style="padding:6px;border:1px solid var(--border)">Memória</th>
+</tr>
+<tr>
+  <td style="padding:6px;border:1px solid var(--border)"><strong>DFS</strong></td>
+  <td style="padding:6px;border:1px solid var(--border);text-align:center">Não*</td>
+  <td style="padding:6px;border:1px solid var(--border);text-align:center">Não</td>
+  <td style="padding:6px;border:1px solid var(--border)">O(b^m)</td>
+  <td style="padding:6px;border:1px solid var(--border)">O(b×m)</td>
+</tr>
+<tr style="background:var(--surface2)">
+  <td style="padding:6px;border:1px solid var(--border)"><strong>BFS</strong></td>
+  <td style="padding:6px;border:1px solid var(--border);text-align:center">Sim</td>
+  <td style="padding:6px;border:1px solid var(--border);text-align:center">Sim†</td>
+  <td style="padding:6px;border:1px solid var(--border)">O(b^d)</td>
+  <td style="padding:6px;border:1px solid var(--border)">O(b^d)</td>
+</tr>
+<tr>
+  <td style="padding:6px;border:1px solid var(--border)"><strong>IDDFS</strong></td>
+  <td style="padding:6px;border:1px solid var(--border);text-align:center">Sim</td>
+  <td style="padding:6px;border:1px solid var(--border);text-align:center">Sim†</td>
+  <td style="padding:6px;border:1px solid var(--border)">O(b^d)</td>
+  <td style="padding:6px;border:1px solid var(--border)">O(b×d)</td>
+</tr>
+</table>
+<p style="font-size:12px">* com controle de visitados, DFS é completo em grafos finitos. † ótimo quando todos os passos têm custo igual. b = fator de ramificação, d = profundidade da solução, m = profundidade máxima.</p>
 </div>`,
 questions:[
   {id:'m5q0',lv:'easy',text:'BFS explora os nós:',opts:['Indo o mais fundo possível primeiro','Nível por nível (largura primeiro)','Aleatoriamente','Por custo crescente'],ans:1,exp:'BFS = Breadth-First Search. Explora todos os nós no nível d antes de passar para o nível d+1. Garante encontrar o caminho mais curto (em número de passos).'},
@@ -486,44 +571,117 @@ questions:[
 
 {id:6,title:'Busca com Informação',sub:'Heurísticas, Greedy e A* em Prolog',
 content:`<div class="content">
-<h2>Busca Informada</h2>
-<p>Usa uma <strong>função heurística h(n)</strong> — estimativa do custo do nó n até o objetivo — para guiar a busca de forma mais eficiente.</p>
-<h3>A* — o algoritmo principal</h3>
-${code(`% f(n) = g(n) + h(n)
-% g(n) = custo real do início até n
-% h(n) = estimativa heurística de n até o objetivo
+<h2>Busca Informada (Heurística)</h2>
+<p>A busca informada usa conhecimento adicional sobre o problema na forma de uma <strong>função heurística h(n)</strong>: uma estimativa do custo restante para ir do estado n até o objetivo. Com uma boa heurística, exploramos muito menos estados que a busca cega.</p>
+<p><strong>f(n) = g(n) + h(n)</strong> onde g(n) é o custo real acumulado do início até n, e h(n) é a estimativa.</p>
 
-% Implementação A* em Prolog
-a_estrela(Inicio, Objetivo, Caminho) :-
-    heuristica(Inicio, H),
-    a_aux([(H,0,[Inicio])], Objetivo, Rev),
-    reverse(Rev, Caminho).
+<h3>Grafo com custos</h3>
+${code(`% ligacao_custo(Origem, Destino, Custo)
+ligacao_custo(a, b, 1). ligacao_custo(a, f, 2).
+ligacao_custo(b, c, 1). ligacao_custo(c, d, 3).
+ligacao_custo(d, e, 1). ligacao_custo(f, e, 4).
 
-% Fronteira ordenada por f = g + h
-a_aux([(_, _, [Obj|R])|_], Obj, [Obj|R]).
-a_aux([(_, G, [N|C])|Abertos], Obj, Path) :-
-    findall((F1, G1, [Viz,N|C]),
-        (aresta(N, Viz, Custo),
-         \\+ member(Viz, [N|C]),
-         G1 is G + Custo,
-         heuristica(Viz, H),
-         F1 is G1 + H),
+% Heuristica: estimativa da distancia ao objetivo e
+heuristica(a, 5). heuristica(b, 4).
+heuristica(c, 3). heuristica(d, 1).
+heuristica(e, 0). heuristica(f, 2).`)}
+
+<h3>Greedy Best-First Search</h3>
+<p>Usa <strong>apenas h(n)</strong> para escolher o próximo nó. Rápido, mas não garante caminho ótimo — pode ser enganado por heurísticas que desviam do caminho real.</p>
+${code(`% greedy/3: busca gulosa ordenando só por h(n)
+greedy(Origem, Destino, Caminho) :-
+    heuristica(Origem, H),
+    greedy_aux([(H, [Origem])], Destino, Caminho).
+
+% CASO BASE: frente da fila chegou ao destino
+greedy_aux([(_, [Destino|Resto])|_], Destino, Caminho) :-
+    reverse([Destino|Resto], Caminho).
+
+% CASO RECURSIVO: expande o nó com menor h
+greedy_aux([(_, [Atual|Visitados])|FilaResto], Destino, Caminho) :-
+    findall(
+        (H, [Proximo, Atual|Visitados]),
+        (ligacao_custo(Atual, Proximo, _),
+         \\+ member(Proximo, [Atual|Visitados]),
+         heuristica(Proximo, H)),
         Filhos),
-    append(Abertos, Filhos, AB1),
-    msort(AB1, AB2),   % ordena por f (menor primeiro)
-    a_aux(AB2, Obj, Path).`)}
-<h3>Heurística Admissível e Consistente</h3>
-<ul>
-  <li><strong>Admissível:</strong> h(n) ≤ custo real até o objetivo (nunca superestima) → A* é ótimo</li>
-  <li><strong>Consistente (monotona):</strong> h(n) ≤ c(n,n') + h(n') → implica admissível + A* nunca reabre nós</li>
-</ul>
-${code(`% Exemplo: Distância Manhattan para grade 2D
-% Admissível para movimentos nos 4 sentidos (não diagonal)
-heuristica(ponto(X1,Y1), ponto(X2,Y2), H) :-
+    append(FilaResto, Filhos, FilaDes),
+    msort(FilaDes, FilaOrdenada),          % ordena por h (menor primeiro)
+    greedy_aux(FilaOrdenada, Destino, Caminho).`)}
+
+<h3>A* — Best-First ótimo</h3>
+<p>Usa <strong>f(n) = g(n) + h(n)</strong>. Se h for admissível, A* <em>sempre encontra o caminho ótimo</em>.</p>
+${code(`% a_estrela/3: interface principal
+a_estrela(Origem, Destino, Caminho) :-
+    heuristica(Origem, H),
+    % Estado da fila: (F, G, [NóAtual|CaminhoAnterior])
+    a_estrela_aux([(H, 0, [Origem])], Destino, Caminho).
+
+% CASO BASE: menor f da fila é o destino
+a_estrela_aux([(_, _, [Destino|Resto])|_], Destino, Caminho) :-
+    reverse([Destino|Resto], Caminho).
+
+% CASO RECURSIVO: expande o nó com menor f = g + h
+a_estrela_aux([(_, G, [Atual|Visitados])|FilaResto], Destino, Caminho) :-
+    findall(
+        (F, G1, [Proximo, Atual|Visitados]),
+        (ligacao_custo(Atual, Proximo, Custo),
+         \\+ member(Proximo, [Atual|Visitados]),
+         G1 is G + Custo,              % custo real acumulado
+         heuristica(Proximo, H),
+         F is G1 + H),                 % f = g + h
+        Filhos),
+    append(FilaResto, Filhos, FilaDes),
+    msort(FilaDes, FilaOrdenada),      % prioridade: menor f primeiro
+    a_estrela_aux(FilaOrdenada, Destino, Caminho).
+
+% Uso: ?- a_estrela(a, e, Caminho).
+%   Caminho = [a, b, c, d, e]  (caminho ótimo pelo custo total)`)}
+
+<h3>Propriedades da Heurística</h3>
+${code(`% ADMISSÍVEL: h(n) <= custo_real(n, objetivo)
+% → A* nunca superestima → garante caminho ótimo
+% Exemplo: distância euclidiana para mapas
+h_euclidiana(ponto(X1,Y1), ponto(X2,Y2), H) :-
+    H is sqrt((X2-X1)**2 + (Y2-Y1)**2).
+
+% CONSISTENTE (monotona): h(n) <= custo(n,n') + h(n')
+% → implica admissível E f nunca decresce no caminho
+% → A* não precisa reabrir nós da lista fechada
+
+% DISTÂNCIA MANHATTAN para grade 4-direções (Puzzle-8):
+% admissível porque cada peça precisa de pelo menos dx+dy moves
+h_manhattan(ponto(X1,Y1), ponto(X2,Y2), H) :-
     H is abs(X2-X1) + abs(Y2-Y1).`)}
-<h3>Greedy vs A*</h3>
-${code(`% Greedy: usa só h(n) — rápido mas não ótimo
-% A*:     usa f(n)=g(n)+h(n) — ótimo se h admissível`)}
+
+<h3>Greedy vs A* vs BFS</h3>
+<table style="width:100%;border-collapse:collapse;font-size:13px;margin:10px 0">
+<tr style="background:var(--surface2)">
+  <th style="padding:6px;text-align:left;border:1px solid var(--border)">Algoritmo</th>
+  <th style="padding:6px;border:1px solid var(--border)">Ordena por</th>
+  <th style="padding:6px;border:1px solid var(--border)">Ótimo?</th>
+  <th style="padding:6px;border:1px solid var(--border)">Velocidade</th>
+</tr>
+<tr>
+  <td style="padding:6px;border:1px solid var(--border)"><strong>BFS</strong></td>
+  <td style="padding:6px;border:1px solid var(--border)">nível (FIFO)</td>
+  <td style="padding:6px;border:1px solid var(--border);text-align:center">Sim (passos)</td>
+  <td style="padding:6px;border:1px solid var(--border)">Lento</td>
+</tr>
+<tr style="background:var(--surface2)">
+  <td style="padding:6px;border:1px solid var(--border)"><strong>Greedy</strong></td>
+  <td style="padding:6px;border:1px solid var(--border)">h(n)</td>
+  <td style="padding:6px;border:1px solid var(--border);text-align:center">Não</td>
+  <td style="padding:6px;border:1px solid var(--border)">Rápido</td>
+</tr>
+<tr>
+  <td style="padding:6px;border:1px solid var(--border)"><strong>A*</strong></td>
+  <td style="padding:6px;border:1px solid var(--border)">g(n) + h(n)</td>
+  <td style="padding:6px;border:1px solid var(--border);text-align:center">Sim (se h admissível)</td>
+  <td style="padding:6px;border:1px solid var(--border)">Depende de h</td>
+</tr>
+</table>
+<p>IDA* = A* com memória O(d): em vez de manter a fronteira inteira, faz DFS com limite f e aumenta o limite a cada iteração.</p>
 </div>`,
 questions:[
   {id:'m6q0',lv:'easy',text:'O que é uma heurística na busca com informação?',opts:['Um algoritmo de ordenação','Uma estimativa do custo do estado atual até o objetivo','Um caminho garantidamente ótimo','Uma regra de poda arbitrária'],ans:1,exp:'h(n) estima o custo restante para atingir o objetivo a partir de n. Heurísticas guiam a busca para explorar estados mais "promissores" primeiro.'},
@@ -540,47 +698,125 @@ questions:[
 
 {id:7,title:'Busca Competitiva',sub:'Minimax e Poda Alfa-Beta em Prolog',
 content:`<div class="content">
-<h2>Jogos de Dois Jogadores</h2>
-<p>Minimax é o algoritmo base para jogos determinísticos, de dois jogadores com informação perfeita (como xadrez, jogo da velha).</p>
-<h3>Algoritmo Minimax</h3>
-${code(`% Minimax: MAX quer maximizar, MIN quer minimizar
-minimax(Estado, 0, _, Valor) :-
-    !, avalia(Estado, Valor).      % limite de profundidade
+<h2>Jogos de Dois Jogadores (Soma Zero)</h2>
+<p>Minimax modela jogos determinísticos, dois jogadores, informação perfeita (xadrez, damas, jogo da velha). É chamado "soma zero" porque o ganho de um é exatamente a perda do outro.</p>
+<p><strong>MAX</strong> = nosso agente, quer maximizar a utilidade. <strong>MIN</strong> = oponente, quer minimizar. Ambos jogam de forma ótima.</p>
 
+<h3>Minimax em Prolog</h3>
+${code(`% Estado do jogo representado como estrutura Prolog
+% movimento/2: Estado -> ListaMovimentos
+% aplica/3: (Estado, Movimento, NovoEstado)
+% avalia/2: EstadoTerminal -> Valor numérico
+
+% minimax/4: (Estado, Profundidade, Jogador, Valor)
 minimax(Estado, _, _, Valor) :-
-    \\+ movimento(Estado, _),
-    !, avalia(Estado, Valor).      % estado terminal
+    \\+ movimento(Estado, _), !,    % estado terminal (sem movimentos)
+    avalia(Estado, Valor).
 
-minimax(Estado, Prof, max, MelhorVal) :-
-    findall(M, movimento(Estado,M), Movs), Movs \\= [],
-    maplist(valor_filho(Estado, Prof, min), Movs, Vals),
-    max_list(Vals, MelhorVal).
+minimax(Estado, 0, _, Valor) :-
+    !, avalia(Estado, Valor).       % limite de profundidade atingido
 
-minimax(Estado, Prof, min, MelhorVal) :-
-    findall(M, movimento(Estado,M), Movs), Movs \\= [],
-    maplist(valor_filho(Estado, Prof, max), Movs, Vals),
-    min_list(Vals, MelhorVal).
+% CASO MAX: quer o maior valor entre os filhos
+minimax(Estado, Prof, max, MelhorValor) :-
+    findall(M, movimento(Estado, M), Movimentos),
+    Movimentos \= [],
+    Prof1 is Prof - 1,
+    findall(V,
+        (member(Mov, Movimentos),
+         aplica(Estado, Mov, NovoEstado),
+         minimax(NovoEstado, Prof1, min, V)),
+        Valores),
+    max_list(Valores, MelhorValor).
 
-valor_filho(Estado, Prof, Vez, Mov, Val) :-
-    aplica(Estado, Mov, NovoEstado),
-    P1 is Prof - 1,
-    minimax(NovoEstado, P1, Vez, Val).`)}
+% CASO MIN: quer o menor valor entre os filhos
+minimax(Estado, Prof, min, MelhorValor) :-
+    findall(M, movimento(Estado, M), Movimentos),
+    Movimentos \= [],
+    Prof1 is Prof - 1,
+    findall(V,
+        (member(Mov, Movimentos),
+         aplica(Estado, Mov, NovoEstado),
+         minimax(NovoEstado, Prof1, max, V)),
+        Valores),
+    min_list(Valores, MelhorValor).
+
+% Escolher o melhor movimento para MAX
+melhor_movimento(Estado, Prof, MelhorMov) :-
+    findall(M, movimento(Estado, M), Movimentos),
+    findall(V-M,
+        (member(M, Movimentos),
+         aplica(Estado, M, NovoEstado),
+         minimax(NovoEstado, Prof, min, V)),
+        Pares),
+    max_member(_-MelhorMov, Pares).`)}
+
 <h3>Poda Alfa-Beta</h3>
-${code(`% α = melhor para MAX até agora (limite inferior)
-% β = melhor para MIN até agora (limite superior)
-% Poda: se β ≤ α, cortar — o pai nunca escolherá este nó
+<p>Elimina ramos que <strong>provadamente não afetarão a decisão final</strong>. O resultado é idêntico ao Minimax completo, mas muito mais rápido.</p>
+<ul>
+  <li><strong>α (alfa):</strong> melhor valor que MAX pode garantir até agora (limite inferior)</li>
+  <li><strong>β (beta):</strong> melhor valor que MIN pode garantir até agora (limite superior)</li>
+  <li><strong>Poda:</strong> se β ≤ α, o pai nunca escolherá esse ramo — pode cortar</li>
+</ul>
+${code(`% alfa_beta/6: (Estado, Prof, Jogador, Alfa, Beta, Valor)
+% Alfa = menor valor que MAX aceita; Beta = maior que MIN aceita
 
-% Complexidade Minimax: O(b^m)
-% Complexidade Alfa-Beta melhor caso: O(b^(m/2))
-% → pode explorar o dobro da profundidade no mesmo tempo!
+alfa_beta(Estado, _, _, Alfa, Beta, Valor) :-
+    \\+ movimento(Estado, _), !,
+    avalia(Estado, Valor).
 
-% Alfa-beta é mais eficaz quando movimentos são
-% ordenados do melhor para o pior`)}
-<h3>Funções de Avaliação</h3>
-${code(`% Para o Jogo da Velha (exemplo simples)
-avalia(Estado, 100)  :- vencedor(Estado, x), !.
-avalia(Estado, -100) :- vencedor(Estado, o), !.
-avalia(_, 0).                      % empate ou incompleto`)}
+alfa_beta(Estado, 0, _, _, _, Valor) :-
+    !, avalia(Estado, Valor).
+
+% CASO MAX: atualiza alfa, poda quando Alfa >= Beta
+alfa_beta(Estado, Prof, max, Alfa, Beta, MelhorValor) :-
+    findall(M, movimento(Estado, M), Movimentos),
+    Prof1 is Prof - 1,
+    max_aux(Movimentos, Estado, Prof1, Alfa, Beta, Alfa, MelhorValor).
+
+max_aux([], _, _, Alfa, _, Alfa, Alfa).     % sem mais movimentos
+max_aux([Mov|Resto], Estado, Prof, Alfa, Beta, AlfaAcc, Valor) :-
+    aplica(Estado, Mov, NovoEstado),
+    alfa_beta(NovoEstado, Prof, min, Alfa, Beta, V),
+    AlfaNovo is max(AlfaAcc, V),
+    ( AlfaNovo >= Beta ->
+        Valor = AlfaNovo               % PODA BETA: MIN nunca escolheria
+    ;
+        max_aux(Resto, Estado, Prof, AlfaNovo, Beta, AlfaNovo, Valor)
+    ).`)}
+
+<h3>Função de Avaliação — Jogo da Velha</h3>
+${code(`% Representação: lista de 9 posicoes (x, o, vazio)
+% Posicoes: 1-9, numeradas da esquerda para direita, cima para baixo
+
+% CASOS TERMINAIS
+avalia(Estado, 1000) :- vencedor(Estado, x), !.   % MAX (x) ganhou
+avalia(Estado, -1000) :- vencedor(Estado, o), !.  % MIN (o) ganhou
+avalia(Estado, 0) :- empate(Estado), !.           % empate
+
+% HEURÍSTICA para estados não-terminais:
+% conta linhas abertas de x e de o
+avalia(Estado, Valor) :-
+    conta_linhas_abertas(Estado, x, Lx),
+    conta_linhas_abertas(Estado, o, Lo),
+    Valor is Lx - Lo.
+
+% linha_aberta: nenhum o nessa linha (x pode vencer por ela)
+vencedor(Estado, Jogador) :-
+    linha(Pos1, Pos2, Pos3),           % padrão de vitória
+    nth1(Pos1, Estado, Jogador),
+    nth1(Pos2, Estado, Jogador),
+    nth1(Pos3, Estado, Jogador).
+
+linha(1,2,3). linha(4,5,6). linha(7,8,9). % horizontais
+linha(1,4,7). linha(2,5,8). linha(3,6,9). % verticais
+linha(1,5,9). linha(3,5,7).               % diagonais`)}
+
+<h3>Complexidade</h3>
+<ul>
+  <li><strong>Minimax:</strong> O(b^m) — explora a árvore toda. Xadrez: b≈35, m≈80 → impraticável sem poda</li>
+  <li><strong>Alfa-Beta melhor caso:</strong> O(b^(m/2)) — com movimentos perfeitamente ordenados, explora o dobro da profundidade no mesmo tempo</li>
+  <li><strong>Alfa-Beta médio:</strong> O(b^(3m/4)) — com ordenação aleatória</li>
+</ul>
 </div>`,
 questions:[
   {id:'m7q0',lv:'easy',text:'Minimax é usado para:',opts:['Busca em grafos gerais','Jogos de dois jogadores de soma zero (um ganha = outro perde)','Otimização sem adversário','Aprendizado de máquina'],ans:1,exp:'Minimax é o algoritmo clássico para jogos de dois jogadores, soma zero, determinísticos, informação perfeita. Ex: xadrez, damas, jogo da velha.'},
@@ -598,37 +834,119 @@ questions:[
 {id:8,title:'Busca Local',sub:'Hill Climbing, Simulated Annealing e Genéticos',
 content:`<div class="content">
 <h2>Busca Local</h2>
-<p>Usada quando o <strong>caminho não importa</strong> — só a solução final (configuração completa). Ex: N-Rainhas, coloração de grafos, otimização.</p>
-<h3>Hill Climbing em Prolog</h3>
-${code(`% Hill Climbing: sempre move para o melhor vizinho
-hill_climbing(Estado, Solucao) :-
-    objetivo(Estado), !, Solucao = Estado.
+<p>Usada quando o <strong>caminho não importa — só a configuração final</strong>. Diferentemente da busca em grafo, a busca local parte de um estado completo e faz pequenas mudanças (movimentos) para melhorá-lo.</p>
+<p><strong>Exemplos:</strong> N-Rainhas (posicionar todas as rainhas sem conflito), coloração de grafos, escalonamento de tarefas, redes neurais (gradiente descendente é busca local).</p>
 
-hill_climbing(Estado, Solucao) :-
-    findall(V-Viz, (vizinho(Estado,Viz), avalia(Viz,V)), Vzs),
-    Vzs \\= [],
-    max_member(_-Melhor, Vzs),    % melhor vizinho
-    avalia(Estado, VAtual),
-    avalia(Melhor, VMelhor),
-    VMelhor > VAtual,             % subida?
+<h3>Hill Climbing (Subida de Encosta)</h3>
+<p>Em cada passo, move para o vizinho com maior valor na função objetivo. Simples e rápido, mas fica preso em ótimos locais.</p>
+${code(`% hill_climbing/2: (EstadoAtual, SolucaoFinal)
+% Requer: vizinho/2, avalia/2, objetivo/1
+
+% CASO BASE: estado atual já é objetivo
+hill_climbing(Estado, Estado) :-
+    objetivo(Estado), !.
+
+% CASO RECURSIVO: encontra o melhor vizinho e sobe
+hill_climbing(EstadoAtual, Solucao) :-
+    findall(Valor-Vizinho,
+        (vizinho(EstadoAtual, Vizinho),
+         avalia(Vizinho, Valor)),
+        VizinhosAvaliados),
+    VizinhosAvaliados \= [],           % há vizinhos disponíveis
+    max_member(_-MelhorVizinho, VizinhosAvaliados),
+    avalia(EstadoAtual, ValorAtual),
+    avalia(MelhorVizinho, ValorMelhor),
+    ValorMelhor > ValorAtual,          % só sobe, nunca desce
     !,
-    hill_climbing(Melhor, Solucao).
+    hill_climbing(MelhorVizinho, Solucao).
 
-hill_climbing(Estado, Estado).    % preso em ótimo local`)}
-<h3>Problemas do Hill Climbing</h3>
+% CASO PARADA: ótimo local (nenhum vizinho é melhor)
+hill_climbing(Estado, Estado).`)}
+
+<h3>Aplicação: N-Rainhas com Hill Climbing</h3>
+${code(`% Estado: lista de N posições (coluna de cada rainha por linha)
+% Ex: [3,1,4,2] significa rainha na linha 1 coluna 3, etc.
+
+% Conta conflitos (pares de rainhas que se atacam)
+conflitos(Estado, N) :-
+    findall(1,
+        (nth1(I, Estado, Ci), nth1(J, Estado, Cj),
+         I < J,
+         (Ci =:= Cj ;                      % mesma coluna
+          abs(Ci-Cj) =:= abs(I-J))),       % mesma diagonal
+        Cs),
+    length(Cs, N).
+
+% Função objetivo: minimizar conflitos (0 = solução)
+avalia_rainhas(Estado, Valor) :-
+    conflitos(Estado, N),
+    Valor is -N.                       % negativo porque hill_climbing maximiza
+
+% Vizinhos: mover uma rainha para outra coluna
+vizinho_rainhas(Estado, Vizinho) :-
+    length(Estado, N),
+    between(1, N, Linha),              % escolhe uma linha
+    between(1, N, NovaCol),            % escolhe nova coluna
+    nth1(Linha, Estado, ColAtual),
+    NovaCol \= ColAtual,               % coluna diferente
+    substituir(Estado, Linha, NovaCol, Vizinho).
+
+substituir([_|T], 1, X, [X|T]) :- !.
+substituir([H|T], I, X, [H|T2]) :-
+    I1 is I - 1, substituir(T, I1, X, T2).`)}
+
+<h3>Hill Climbing com Reinício Aleatório</h3>
+${code(`% Tenta hill_climbing de múltiplos estados iniciais aleatórios
+% Aumenta chance de encontrar ótimo global
+
+hc_reinicio(N, Solucao) :-
+    estado_aleatorio(N, Inicial),       % gera estado inicial aleatório
+    hill_climbing(Inicial, Candidato),
+    ( objetivo(Candidato) ->
+        Solucao = Candidato             % encontrou solução global
+    ;
+        hc_reinicio(N, Solucao)         % tenta de novo
+    ).`)}
+
+<h3>Simulated Annealing (Recozimento Simulado)</h3>
+<p>Aceita movimentos para estados <em>piores</em> com probabilidade P = e^(-ΔE/T), onde T é a "temperatura" que decresce com o tempo. Escapa de ótimos locais.</p>
+${code(`% sa/4: (EstadoAtual, Temperatura, CoolingRate, Solucao)
+% Temperatura alta: aceita muita coisa (exploração)
+% Temperatura baixa: só aceita melhorias (explotação)
+
+sa(Estado, T, _, Estado) :-
+    T < 0.01, !.                       % critério de parada
+
+sa(EstadoAtual, T, Taxa, Solucao) :-
+    avalia(EstadoAtual, ValorAtual),
+    vizinho_aleatorio(EstadoAtual, Vizinho),
+    avalia(Vizinho, ValorVizinho),
+    Delta is ValorVizinho - ValorAtual,
+    ( Delta > 0 ->
+        ProxEstado = Vizinho           % sempre aceita melhoria
+    ;
+        % aceita piora com probabilidade e^(Delta/T)
+        Prob is exp(Delta / T),
+        random(R),
+        ( R < Prob ->
+            ProxEstado = Vizinho       % aceita piora (escapa ótimo local)
+        ;
+            ProxEstado = EstadoAtual   % rejeita
+        )
+    ),
+    TNova is T * Taxa,                 % cooling schedule: reduz temperatura
+    sa(ProxEstado, TNova, Taxa, Solucao).
+
+% Uso: ?- sa(EstadoInicial, 100.0, 0.99, Solucao).`)}
+
+<h3>Quando usar cada algoritmo</h3>
 <ul>
-  <li><strong>Ótimo local:</strong> um pico menor que o global</li>
-  <li><strong>Planalto:</strong> vizinhos com mesmo valor — sem direção clara</li>
-  <li><strong>Crista:</strong> declives que exigem movimentos laterais</li>
+  <li><strong>Hill Climbing:</strong> espaço com poucos ótimos locais, solução razoável é suficiente</li>
+  <li><strong>HC + Reinício:</strong> muitos ótimos locais, espaço não muito grande</li>
+  <li><strong>Simulated Annealing:</strong> função objetivo complexa com muitos ótimos locais; requer cooling schedule bem calibrado</li>
+  <li><strong>Algoritmos Genéticos:</strong> problemas de otimização combinatória grandes; representação em cromossomo natural</li>
+  <li><strong>Busca de Feixe (Beam k):</strong> k estados simultâneos; memória O(k×b)</li>
 </ul>
-<h3>Soluções</h3>
-${code(`% Random Restart: reiniciar de diferentes posições
-% Simulated Annealing: aceita movimentos piores com P = e^(-ΔE/T)
-%   T (temperatura) começa alta e vai diminuindo (cooling schedule)
-%   Com T→0, SA se comporta como Hill Climbing
-
-% Busca de feixe (Beam Search): mantém k melhores estados
-% Algoritmos genéticos: população + seleção + crossover + mutação`)}
 </div>`,
 questions:[
   {id:'m8q0',lv:'easy',text:'Hill climbing sempre move para:',opts:['O vizinho aleatório','O melhor estado vizinho (maior valor da função objetivo)','O vizinho mais distante','O estado inicial'],ans:1,exp:'Hill climbing (subida de encosta): em cada passo, move para o vizinho com maior valor na função objetivo. Não guarda histórico — só o estado atual importa.'},
