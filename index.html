@@ -1,0 +1,991 @@
+<title>Prolog IC — IFTM</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg:#F0F4F8;--surface:#fff;--surface2:#E8EEF4;--border:#CBD5E1;
+  --text:#0F172A;--text2:#475569;--accent:#2563EB;--accent-bg:#DBEAFE;
+  --ok:#16A34A;--ok-bg:#DCFCE7;--err:#DC2626;--err-bg:#FEE2E2;
+  --warn:#D97706;--code-bg:#1E293B;--code-fg:#E2E8F0;
+  --easy:#16A34A;--med:#D97706;--hard:#DC2626;--expert:#7C3AED;
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A1628;--surface:#1C2E4A;--surface2:#162440;--border:#2D4A6F;
+  --text:#E2E8F0;--text2:#94A3B8;--accent:#3B82F6;--accent-bg:#1E3A5F;
+  --ok:#22C55E;--ok-bg:#14532D;--err:#EF4444;--err-bg:#450A0A;
+  --warn:#F59E0B;color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0A1628;--surface:#1C2E4A;--surface2:#162440;--border:#2D4A6F;
+  --text:#E2E8F0;--text2:#94A3B8;--accent:#3B82F6;--accent-bg:#1E3A5F;
+  --ok:#22C55E;--ok-bg:#14532D;--err:#EF4444;--err-bg:#450A0A;
+  --warn:#F59E0B;color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.6}
+code,pre{font-family:'JetBrains Mono',monospace}
+#app{display:flex;flex-direction:column;min-height:100vh}
+nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:4px;position:sticky;top:0;z-index:10}
+nav h1{font-size:16px;font-weight:700;color:var(--accent);margin-right:12px;white-space:nowrap}
+.nav-btn{padding:10px 14px;border:none;background:none;cursor:pointer;color:var(--text2);font-size:14px;font-weight:500;border-bottom:2px solid transparent;transition:.2s}
+.nav-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.nav-btn:hover{color:var(--text)}
+.theme-btn{margin-left:auto;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:none;cursor:pointer;color:var(--text2);font-size:13px}
+main{flex:1;padding:20px 16px;max-width:1000px;margin:0 auto;width:100%}
+/* Cards grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:.15s}
+.card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.card-num{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.05em;text-transform:uppercase}
+.card-title{font-size:15px;font-weight:600;margin-top:4px}
+.card-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.card-progress{height:4px;background:var(--surface2);border-radius:2px;margin-top:10px;overflow:hidden}
+.card-progress-bar{height:100%;background:var(--accent);transition:.4s}
+/* Module view */
+.module-header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.back-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;color:var(--text2);font-size:13px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{padding:8px 16px;border:none;background:none;cursor:pointer;color:var(--text2);font-size:14px;font-weight:500;border-bottom:2px solid transparent;transition:.15s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+/* Content */
+.content h2{font-size:18px;font-weight:700;margin:20px 0 8px}
+.content h3{font-size:15px;font-weight:600;margin:16px 0 6px;color:var(--accent)}
+.content p{color:var(--text2);margin-bottom:10px}
+.content ul{color:var(--text2);padding-left:20px;margin-bottom:10px}
+.content ul li{margin-bottom:3px}
+pre{background:var(--code-bg);color:var(--code-fg);padding:14px;border-radius:8px;overflow-x:auto;margin:10px 0;font-size:13px;line-height:1.7}
+.kw{color:#93C5FD}
+.cm{color:#64748B;font-style:italic}
+.vr{color:#67E8F9}
+.nm{color:#FCA5A5}
+.op{color:#FDE68A}
+.st{color:#86EFAC}
+.at{color:#E2E8F0}
+/* Quiz */
+.quiz-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.progress-bar{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;flex:1;min-width:100px}
+.progress-fill{height:100%;background:var(--accent);transition:.3s}
+.question-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:12px}
+.q-level{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px}
+.q-level.easy{color:var(--easy)}.q-level.med{color:var(--med)}.q-level.hard{color:var(--hard)}.q-level.expert{color:var(--expert)}
+.q-text{font-size:15px;font-weight:500;margin-bottom:14px}
+.q-text code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:13px}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:14px;text-align:left;background:var(--surface);color:var(--text);transition:.15s}
+.opt:hover:not([disabled]){border-color:var(--accent);background:var(--accent-bg)}
+.opt.correct{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.opt.wrong{background:var(--err-bg);border-color:var(--err);color:var(--err)}
+.opt.missed{background:var(--accent-bg);border-color:var(--accent)}
+.explanation{margin-top:12px;padding:10px 14px;background:var(--surface2);border-radius:8px;font-size:13px;color:var(--text2)}
+.quiz-nav{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:14px;font-weight:500;transition:.15s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{opacity:.9}
+.btn-secondary{background:var(--surface);border:1px solid var(--border);color:var(--text)}.btn-secondary:hover{border-color:var(--accent)}
+/* Score */
+.score-card{text-align:center;padding:28px;background:var(--surface);border-radius:12px;margin-bottom:16px}
+.score-big{font-size:48px;font-weight:800;color:var(--accent)}
+.score-label{color:var(--text2);font-size:14px;margin-top:4px}
+/* Simulado cards */
+.sim-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.sim-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:.15s}
+.sim-card:hover{border-color:var(--accent)}
+.sim-card.done{border-color:var(--ok)}
+.sim-score{font-size:22px;font-weight:800;margin-top:4px}
+.sim-score.pass{color:var(--ok)}.sim-score.fail{color:var(--err)}.sim-score.none{color:var(--text2)}
+/* Performance */
+.perf-module{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.perf-label{min-width:160px;font-size:14px;font-weight:500}
+.perf-bar-wrap{flex:1;min-width:80px;height:10px;background:var(--surface2);border-radius:5px;overflow:hidden}
+.perf-bar{height:100%;border-radius:5px;transition:.4s}
+.perf-pct{min-width:36px;font-size:13px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;padding:3px 8px;border-radius:12px;font-size:12px;font-weight:600}
+.badge-ok{background:var(--ok-bg);color:var(--ok)}
+.badge-warn{background:var(--err-bg);color:var(--err)}
+.section-title{font-size:20px;font-weight:700;margin-bottom:16px}
+.highlight-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.highlight-box.good{border-color:var(--ok)}
+.highlight-box.bad{border-color:var(--err)}
+@media(max-width:500px){.grid{grid-template-columns:1fr}.sim-grid{grid-template-columns:1fr 1fr}}
+</style>
+
+<div id="app">
+  <nav>
+    <h1>⚡ Prolog IC</h1>
+    <button class="nav-btn active" onclick="showView('home')">Módulos</button>
+    <button class="nav-btn" onclick="showView('simulados')">Simulados</button>
+    <button class="nav-btn" onclick="showView('desempenho')">Desempenho</button>
+    <button class="theme-btn" onclick="toggleTheme()">◑ Tema</button>
+  </nav>
+  <main id="main"></main>
+</div>
+
+<script>
+// ── THEME ──────────────────────────────────────────────
+function toggleTheme(){
+  const r=document.documentElement;
+  const cur=r.getAttribute('data-theme');
+  r.setAttribute('data-theme', cur==='dark'?'light':'dark');
+  try{localStorage.setItem('ic-theme',r.getAttribute('data-theme'))}catch(e){}
+}
+try{const t=localStorage.getItem('ic-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}
+
+// ── NAV ────────────────────────────────────────────────
+let currentView='home', currentMod=0, currentModTab='content', quizState=null, simState=null;
+function showView(v){
+  currentView=v;
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>{
+    b.classList.toggle('active',['home','simulados','desempenho'][i]===v);
+  });
+  renderMain();
+}
+
+// ── PERFORMANCE ────────────────────────────────────────
+let perf={};
+function loadPerf(){try{const s=localStorage.getItem('ic-perf');if(s)perf=JSON.parse(s);}catch(e){}}
+function savePerf(){try{localStorage.setItem('ic-perf',JSON.stringify(perf))}catch(e){}}
+function recordAnswer(qid,correct){
+  if(!perf[qid])perf[qid]={c:0,w:0};
+  if(correct)perf[qid].c++;else perf[qid].w++;
+  savePerf();
+}
+function moduleScore(mid){
+  const qs=MODULES[mid].questions;
+  let c=0,t=0;
+  qs.forEach(q=>{if(perf[q.id]){c+=perf[q.id].c;t+=perf[q.id].c+perf[q.id].w;}});
+  return{c,t,pct:t?Math.round(c/t*100):null};
+}
+function simScore(sid){
+  const s=SIMS[sid];
+  let c=0,done=0;
+  s.qs.forEach(qid=>{const p=perf['sim_'+sid+'_'+qid];if(p){c+=p.c;done++;}});
+  return{c,total:s.qs.length,done,pct:done===s.qs.length?Math.round(c/s.qs.length*100):null};
+}
+loadPerf();
+
+// ── PROLOG HIGHLIGHTER ─────────────────────────────────
+function hl(code){
+  return code
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(%.*)$/gm,'<span class="cm">$1</span>')
+    .replace(/\b(is|not|fail|true|assert|retract|write|nl|halt|call|functor|arg|copy_term|findall|bagof|setof|forall|between|length|append|member|msort|sort|reverse|atom|number|var|nonvar|integer|float|compound|atomic|ground)\b/g,'<span class="kw">$1</span>')
+    .replace(/([!,;]|:-|\?>|\\[+=\-]|=\.\.|\\\+|=:=|=\\=|\\==|==|\\=|>=|=<|>|<|=)/g,'<span class="op">$1</span>')
+    .replace(/\b([A-Z_][A-Za-z0-9_]*)\b/g,'<span class="vr">$1</span>')
+    .replace(/\b(\d+\.?\d*)\b/g,'<span class="nm">$1</span>')
+    .replace(/'([^']*)'/g,'<span class="st">\'$1\'</span>');
+}
+function code(c){return`<pre>${hl(c)}</pre>`;}
+
+// ── DATA: MODULES ──────────────────────────────────────
+const MODULES=[
+{id:0,title:'Introdução ao Prolog',sub:'Fatos, Regras e Consultas',
+content:`<div class="content">
+<h2>O que é Prolog?</h2>
+<p>Prolog (PROgramming in LOGic) é uma linguagem de programação lógica declarativa. Em vez de descrever <em>como</em> resolver um problema, você descreve <em>o que é verdadeiro</em> e o Prolog encontra as soluções.</p>
+<h3>Os 3 blocos fundamentais</h3>
+<ul>
+  <li><strong>Fatos:</strong> afirmações incondicionais sobre o mundo</li>
+  <li><strong>Regras:</strong> afirmações condicionais (se... então...)</li>
+  <li><strong>Consultas:</strong> perguntas feitas ao sistema</li>
+</ul>
+${code(`% FATOS - termine sempre com ponto final
+pai(joao, maria).       % joao é pai de maria
+pai(joao, pedro).       % joao é pai de pedro
+mae(ana, maria).        % ana é mãe de maria
+mae(ana, pedro).
+
+% REGRAS - cabeça :- corpo
+progenitor(X, Y) :- pai(X, Y).    % X é progenitor de Y se X é pai de Y
+progenitor(X, Y) :- mae(X, Y).
+
+irmao(X, Y) :-
+    progenitor(Z, X),   % mesmos pais
+    progenitor(Z, Y),
+    X \\= Y.            % e não são a mesma pessoa
+
+% CONSULTAS (no interpretador, após ?-)
+% ?- pai(joao, maria).         % true
+% ?- progenitor(X, pedro).     % X = joao ; X = ana
+% ?- irmao(maria, Q).          % Q = pedro`)}
+<h3>Backtracking</h3>
+<p>Quando Prolog encontra múltiplas cláusulas que podem satisfazer um objetivo, ele tenta cada uma. Se uma falha, <strong>volta atrás (backtracking)</strong> e tenta a próxima alternativa.</p>
+${code(`% Para a consulta ?- progenitor(X, pedro).
+% Prolog tenta: progenitor(X, pedro) via pai(X, pedro)  → X = joao ✓
+% Se pedirmos mais (;): tenta via mae(X, pedro)          → X = ana  ✓`)}
+</div>`,
+questions:[
+  {id:'m0q0',lv:'easy',text:'Em Prolog, <code>gato(felix).</code> é um exemplo de:',opts:['Regra','Fato','Consulta','Variável'],ans:1,exp:'Um fato é uma afirmação incondicional. Não tem corpo (sem ":-"), apenas uma cabeça com ponto final.'},
+  {id:'m0q1',lv:'easy',text:'Qual símbolo separa a cabeça do corpo de uma regra em Prolog?',opts:['->',':-','=>','::'],ans:1,exp:'":-" lê-se como "se". Exemplo: feliz(X) :- tem_dinheiro(X). significa "X é feliz SE X tem dinheiro".'},
+  {id:'m0q2',lv:'easy',text:'Variáveis em Prolog começam com:',opts:['Letra minúscula','$','Letra maiúscula ou _','@'],ans:2,exp:'Variáveis começam com letra MAIÚSCULA (X, Nome, Resultado) ou underscore (_). Átomos começam com minúscula.'},
+  {id:'m0q3',lv:'med',text:'Base: <code>pai(joao,maria). pai(joao,pedro). irmao(X,Y):-pai(Z,X),pai(Z,Y),X\\=Y.</code> A consulta <code>?- irmao(maria, X)</code> retorna:',opts:['false','X = joao','X = pedro','X = maria'],ans:2,exp:'joao é pai de maria E de pedro, e maria \\= pedro, então irmao(maria, pedro) é verdadeiro. X=pedro.'},
+  {id:'m0q4',lv:'med',text:'O que significa <code>_</code> (underscore sozinho) em Prolog?',opts:['Uma variável chamada underscore','Variável anônima — não liga a nenhum valor específico','O operador de negação','Um átomo especial'],ans:1,exp:'_ é a variável anônima. Cada ocorrência de _ é independente. Usada quando o valor não importa: pai(_, pedro) — qualquer pai de pedro.'},
+  {id:'m0q5',lv:'med',text:'Em Prolog, cada cláusula (fato ou regra) termina com:',opts:[';','.','end','\\n'],ans:1,exp:'O ponto final (.) termina cada cláusula em Prolog. É obrigatório. Sem ele, o interpretador espera mais termos.'},
+  {id:'m0q6',lv:'hard',text:'Qual a diferença entre <code>=</code> e <code>==</code> em Prolog?',opts:['São idênticos','= tenta unificar; == verifica igualdade estrutural SEM tentar unificar','== é aritmético; = é lógico','= é para átomos; == é para estruturas'],ans:1,exp:'X = 5 liga X a 5 (unificação). X == 5 só é verdadeiro se X JÁ estiver ligado a 5 — não tenta ligar. Exemplo: X==5 falha se X está livre.'},
+  {id:'m0q7',lv:'hard',text:'O que é backtracking em Prolog?',opts:['Um erro de compilação','Mecanismo de voltar a pontos de escolha anteriores para tentar outras soluções','Uma forma de iteração equivalente a for-loop','O processo de carregar um arquivo .pl'],ans:1,exp:'Quando um objetivo falha, Prolog volta ao último ponto de escolha e tenta a próxima alternativa disponível. É o coração da busca em Prolog.'},
+  {id:'m0q8',lv:'hard',text:'<code>cor(r). cor(a). cor(v). ?- cor(X), cor(Y), X\\=Y, !.</code> Quantas soluções são retornadas?',opts:['6','0','1','3'],ans:2,exp:'O ! (corte) é executado após a primeira solução encontrada (X=r, Y=a). Ele impede que Prolog explore mais alternativas. Retorna apenas 1 solução.'},
+  {id:'m0q9',lv:'expert',text:'X está ligado ao valor 3. O que acontece com <code>X = 5</code>?',opts:['X passa a valer 5','X passa a valer 8','Falha (fail) — variáveis não podem ser religadas','Gera um erro de tipo'],ans:2,exp:'Em Prolog, variáveis são ligadas uma única vez (Single Assignment). Uma vez que X=3, tentar X=5 falha porque 3 \\= 5. Não há "atribuição" como em linguagens imperativas.'}
+]},
+
+{id:1,title:'Sintaxe e Unificação',sub:'Termos, Estruturas e Pattern Matching',
+content:`<div class="content">
+<h2>Termos em Prolog</h2>
+<p>Tudo em Prolog é um <strong>termo</strong>. Existem quatro tipos:</p>
+<ul>
+  <li><strong>Átomos:</strong> <code>joao</code>, <code>maria</code>, <code>'Olá mundo'</code> — constantes simbólicas</li>
+  <li><strong>Números:</strong> <code>42</code>, <code>3.14</code></li>
+  <li><strong>Variáveis:</strong> <code>X</code>, <code>_Nome</code>, <code>_</code></li>
+  <li><strong>Estruturas:</strong> <code>ponto(3,4)</code>, <code>pessoa(joao, 25)</code> — funtor + argumentos</li>
+</ul>
+<h3>Listas</h3>
+<p>Listas são estruturas especiais: <code>[H|T]</code> onde H é o primeiro elemento e T é o resto.</p>
+${code(`% Unificação básica
+?- X = 5.              % X = 5 ✓
+?- joao = joao.        % true ✓
+?- joao = maria.       % false ✗ (átomos diferentes)
+
+% Unificação de estruturas
+?- f(X, 2) = f(1, Y).  % X = 1, Y = 2
+
+% Unificação de listas
+?- [H|T] = [1, 2, 3].  % H = 1, T = [2, 3]
+?- [A,B|C] = [x,y,z].  % A=x, B=y, C=[z]
+
+% \= é verdadeiro quando NÃO unifica
+?- 1 \\= 2.             % true
+?- X \\= 5.             % false (X pode ser 5)
+
+% == igualdade sem unificação
+?- X == 5.             % false se X não está ligado
+?- 5 == 5.             % true`)}
+<h3>functor/3 e arg/3</h3>
+${code(`% Inspecionar estruturas
+?- functor(f(a,b,c), F, A). % F=f, A=3 (nome e aridade)
+?- arg(2, f(x,y,z), V).     % V=y  (2º argumento)
+?- X =.. [f, 1, 2].         % X = f(1,2) (univ operator)`)}
+</div>`,
+questions:[
+  {id:'m1q0',lv:'easy',text:'<code>ponto(3, 4)</code> em Prolog é um:',opts:['Átomo','Número','Estrutura (termo composto)','Lista'],ans:2,exp:'Uma estrutura tem funtor + argumentos: ponto/2 com argumentos 3 e 4. Também chamada de "termo composto".'},
+  {id:'m1q1',lv:'easy',text:'Qual das seguintes é uma variável Prolog válida?',opts:['joao','_nome','3abc',"'Joao'"],ans:1,exp:'Variáveis começam com maiúscula ou underscore: _nome, X, MeuNome. "joao" é átomo, "3abc" é inválido, e \'Joao\' é um átomo quoted.'},
+  {id:'m1q2',lv:'easy',text:'<code>X = 5</code> quando X não está ligado faz:',opts:['Falha','Liga X ao valor 5 (unificação)','Verifica se X é igual a 5','Incrementa X'],ans:1,exp:'Quando X é uma variável livre, X=5 unifica X com 5, ligando X ao valor 5. Sucesso.'},
+  {id:'m1q3',lv:'med',text:'O que retorna <code>?- f(X, 2) = f(1, Y).</code>?',opts:['false','X = 1, Y = 2','X = 2, Y = 1','true sem ligar variáveis'],ans:1,exp:'Unificação posicional: f(X,2) = f(1,Y) exige X=1 e 2=Y, então X=1 e Y=2.'},
+  {id:'m1q4',lv:'med',text:'<code>[H|T] = [1, 2, 3]</code> resulta em:',opts:['H=[1], T=[2,3]','H=1, T=[2,3]','H=[1,2], T=[3]','Falha'],ans:1,exp:'[H|T] é o padrão lista: H captura o primeiro elemento (1), T captura o resto ([2,3]).'},
+  {id:'m1q5',lv:'med',text:'<code>\\=</code> em Prolog é verdadeiro quando:',opts:['Os termos são idênticos','Os termos NÃO podem ser unificados','É uma comparação aritmética','É sinônimo de \\=='],ans:1,exp:'\\= é o oposto de =. Verdadeiro quando os dois termos NÃO conseguem unificar. Cuidado: X \\= 5 falha se X é livre (pois X poderia ser 5).'},
+  {id:'m1q6',lv:'hard',text:'<code>?- X = f(X).</code> em SWI-Prolog padrão:',opts:['Falha imediatamente','Cria um termo circular (estrutura infinita)','X fica variável livre','Gera erro de tipo'],ans:1,exp:'Sem "occurs check", Prolog permite X = f(X), criando um termo circular X = f(f(f(...))). Com occurs_check(true) isso falharia.'},
+  {id:'m1q7',lv:'hard',text:'Qual das seguintes unificações FALHA?',opts:['f(X) = f(3)','[H|_] = [1,2,3]','f(1,2) = f(2,1)','X = [1|T]'],ans:2,exp:'f(1,2) = f(2,1) requer 1=2 (posição 1) e 2=1 (posição 2), ambos falham. Os outros têm solução.'},
+  {id:'m1q8',lv:'hard',text:'<code>?- functor(f(a,b), Nome, Aridade).</code> retorna:',opts:['Nome=f, Aridade=1','Nome=f, Aridade=2',"Nome='f(a,b)', Aridade=0",'Falha'],ans:1,exp:'functor/3 decompõe uma estrutura: Nome = f (funtor), Aridade = 2 (número de argumentos).'},
+  {id:'m1q9',lv:'expert',text:'<code>copy_term(f(X, X), Y)</code> resulta em:',opts:['Y = f(X, X) sem copiar','Y = f(A, A) com A sendo nova variável livre','Y = f(X, _)','Falha se X não está ligado'],ans:1,exp:'copy_term cria uma cópia com novas variáveis. f(X,X) tem X compartilhado, então Y = f(A,A) onde A é nova variável — as duas posições ainda compartilham a mesma variável nova.'}
+]},
+
+{id:2,title:'Aritmética em Prolog',sub:'is, Comparações e Operadores',
+content:`<div class="content">
+<h2>O operador <code>is/2</code></h2>
+<p>Em Prolog, <code>=</code> é unificação estrutural — não avalia expressões. Para calcular, use <code>is</code>:</p>
+${code(`% is avalia a expressão do lado direito
+?- X is 3 + 4.      % X = 7
+?- X is 10 mod 3.   % X = 1
+?- X is 2 ** 10.    % X = 1024.0
+?- X is sqrt(16).   % X = 4.0
+?- X is abs(-7).    % X = 7
+?- X is max(3,8).   % X = 8
+
+% ERRADO: = não avalia
+?- X = 3 + 4.       % X = 3+4 (estrutura, não número!)
+?- X + 1 = 5.       % falha! (não resolve X=4)`)}
+<h3>Comparações aritméticas</h3>
+${code(`?- 5 > 3.       % true
+?- 3 >= 3.      % true
+?- 4 =:= 4.     % true  (igualdade aritmética)
+?- 4 =\\= 5.    % true  (diferença aritmética)
+?- 3 < 5.       % true
+?- 5 =< 6.      % true  (menor ou igual — note =<, não <=!)`)}
+<h3>Exemplos práticos</h3>
+${code(`% Fatorial
+fatorial(0, 1) :- !.
+fatorial(N, F) :-
+    N > 0,
+    N1 is N - 1,
+    fatorial(N1, F1),
+    F is N * F1.
+
+% Soma de lista
+soma([], 0).
+soma([H|T], S) :-
+    soma(T, S1),
+    S is S1 + H.
+
+% Máximo de dois números
+maximo(X, Y, X) :- X >= Y, !.
+maximo(_, Y, Y).
+
+% ?- fatorial(5, F).   % F = 120
+% ?- soma([1,2,3], S). % S = 6`)}
+</div>`,
+questions:[
+  {id:'m2q0',lv:'easy',text:'<code>?- X is 3 + 4.</code> resulta em:',opts:['X = 3+4 (estrutura)','X = 7','Erro de tipo','false'],ans:1,exp:'"is" avalia a expressão aritmética do lado direito e unifica o resultado com o lado esquerdo. 3+4=7, então X=7.'},
+  {id:'m2q1',lv:'easy',text:'Qual operador verifica igualdade aritmética em Prolog?',opts:['=','==','=:=','is'],ans:2,exp:'"=:=" avalia ambos os lados como expressões aritméticas e verifica se são iguais. "=" é unificação, "==" é igualdade estrutural.'},
+  {id:'m2q2',lv:'easy',text:'<code>?- X is 10 mod 3.</code> retorna:',opts:['X = 3','X = 1','X = 0','X = 3.33'],ans:1,exp:'10 mod 3 = 1 (resto da divisão de 10 por 3). 10 = 3×3 + 1.'},
+  {id:'m2q3',lv:'med',text:'Por que <code>X + 1 = 5</code> falha em Prolog?',opts:['Porque = é aritmético','= é unificação estrutural, não avaliação — tenta unificar a estrutura +(X,1) com 5','Porque 5 não é variável','Porque falta o is'],ans:1,exp:'"=" tenta unificar +(X,1) com 5. Isso requer que a estrutura +(X,1) seja igual ao átomo 5, o que é impossível. Para resolver X, seria preciso: X is 5 - 1.'},
+  {id:'m2q4',lv:'med',text:'<code>?- 5 > 3, 2 < 4.</code> resulta em:',opts:['false','5 > 3','true','Erro'],ans:2,exp:'Dois objetivos com vírgula são conjunção (AND). 5>3 é true E 2<4 é true, logo o resultado é true.'},
+  {id:'m2q5',lv:'med',text:'Qual a diferença entre <code>=:=</code> e <code>=</code>?',opts:['São idênticos','=:= avalia expressões aritméticas; = faz unificação estrutural','= é mais rápido','=:= funciona com strings'],ans:1,exp:'"3+1 =:= 4" é true (avalia ambos). "3+1 = 4" é false (tenta unificar a estrutura +(3,1) com 4, que são termos diferentes).'},
+  {id:'m2q6',lv:'hard',text:'<code>soma([],0). soma([H|T],S):-soma(T,S1),S is S1+H. ?-soma([1,2,3,4],X).</code>',opts:['X = 0','X = 10','X = [1,2,3,4]','Erro de tipo'],ans:1,exp:'soma recursiva: soma([4],S1=4), soma([3,4],S=7), soma([2,3,4],S=9), soma([1,2,3,4],S=10). X=10.'},
+  {id:'m2q7',lv:'hard',text:'<code>between(1, 5, X)</code> em Prolog gera:',opts:['X = [1,2,3,4,5]','X=1, depois X=2, ..., X=5 via backtracking','true se 1 <= 5','X = 3 (valor médio)'],ans:1,exp:'"between/3" é gerador: produz cada inteiro no intervalo através de backtracking. Útil em: findall(X, between(1,5,X), L) → L=[1,2,3,4,5].'},
+  {id:'m2q8',lv:'hard',text:'Para calcular 2¹⁰ em Prolog, usa-se:',opts:['X is 2 ** 10','X is 2 ^ 10','potencia(2,10,X)','X = pow(2,10)'],ans:0,exp:'"**" é o operador de potência em Prolog ISO. "^" também funciona em SWI-Prolog para potência inteira. O resultado de 2**10 é 1024.0 (float).'},
+  {id:'m2q9',lv:'expert',text:'O código tem bug: <code>conta([],0). conta([_|T],N):-conta(T,N),N is N+1.</code> Qual é?',opts:['Falta ponto final','N já está ligado pelo retorno recursivo; não pode ser reatribuído com is','A lista vazia deveria retornar 1','Falta predicado auxiliar'],ans:1,exp:'conta(T,N) liga N ao comprimento do rabo. Depois N is N+1 tenta religar N — mas N já está ligado! Corrigido: conta([_|T],N):-conta(T,N1),N is N1+1.'}
+]},
+
+{id:3,title:'Lógica e Blueprints',sub:'Conjunção, Disjunção, Negação e Listas',
+content:`<div class="content">
+<h2>Operadores lógicos</h2>
+${code(`% Conjunção (AND) — vírgula
+adulto_empregado(X) :- adulto(X), tem_emprego(X).
+
+% Disjunção (OR) — ponto-e-vírgula
+transporte(X) :- carro(X) ; bicicleta(X).
+
+% Negação por falha — \\+
+solteiro(X) :- pessoa(X), \\+ casado(X).
+% "X é solteiro SE X é pessoa E NÃO É PROVÁVEL que X seja casado"`)}
+<h3>Coletores: findall, bagof, setof</h3>
+${code(`pai(joao, maria). pai(joao, pedro). pai(carlos, ana).
+
+% findall: sempre retorna lista ([] se nenhum)
+?- findall(F, pai(F,_), Pais).   % Pais = [joao,joao,carlos]
+?- findall(F-C, pai(F,C), L).    % L = [joao-maria, joao-pedro, carlos-ana]
+
+% Contar soluções
+?- findall(_, pai(_,_), L), length(L, N).  % N = 3
+
+% setof: retorna sem duplicatas, ordenado (falha se vazio)
+?- setof(F, C^pai(F,C), Pais).   % Pais = [carlos, joao]`)}
+<h3>Predicados de lista</h3>
+${code(`% member/2 — verificar pertinência / gerar elementos
+?- member(2, [1,2,3]).       % true
+?- member(X, [a,b,c]).       % X=a ; X=b ; X=c
+
+% append/3 — concatenar listas
+?- append([1,2],[3,4],L).   % L = [1,2,3,4]
+?- append(X,[3],  [1,2,3]). % X = [1,2]
+
+% length/2
+?- length([a,b,c], N).      % N = 3
+?- length(L, 3).             % L = [_,_,_] (lista de 3 vars)
+
+% Comprimento recursivo (implementação manual)
+comprimento([], 0).
+comprimento([_|T], N) :-
+    comprimento(T, N1),
+    N is N1 + 1.`)}
+</div>`,
+questions:[
+  {id:'m3q0',lv:'easy',text:'<code>,</code> entre dois objetivos em Prolog representa:',opts:['Disjunção (OR)','Conjunção (AND) — ambos devem ser verdadeiros','Negação (NOT)','Equivalência'],ans:1,exp:'Vírgula = AND lógico. Ambos os objetivos devem ter sucesso para a conjunção ser verdadeira. Se um falha, Prolog faz backtracking.'},
+  {id:'m3q1',lv:'easy',text:'<code>\\+</code> em Prolog significa:',opts:['Diferença aritmética','Negação por falha — verdadeiro se o objetivo NÃO pode ser provado','Não unificação','Complemento de conjunto'],ans:1,exp:'"\\+" é "not provable". \\+Goal tem sucesso SE Goal falha. Cuidado: é negação por falha, não negação lógica clássica.'},
+  {id:'m3q2',lv:'easy',text:'<code>findall(X, pai(X,_), Lista)</code> retorna:',opts:['Apenas o primeiro X','Todos os X onde pai(X,_) é verdadeiro em uma lista','true se existe algum pai','Conta quantos pais existem'],ans:1,exp:'"findall/3" coleta TODAS as soluções em uma lista. Se não houver soluções, retorna [] (diferente de bagof que falharia).'},
+  {id:'m3q3',lv:'med',text:'<code>;</code> em Prolog representa:',opts:['Conjunção','Separador de cláusulas','Disjunção (OR)','Ponto final'],ans:2,exp:'Ponto-e-vírgula = OR lógico em Prolog. (a ; b) tem sucesso se a OU b tem sucesso. Também usado para separar alternativas em respostas do interpretador.'},
+  {id:'m3q4',lv:'med',text:'<code>?- \\+ member(5, [1,2,3]).</code> resulta em:',opts:['false','true','erro','5'],ans:1,exp:'member(5,[1,2,3]) falha (5 não está na lista). \\+ de um objetivo que falha = true. Portanto \\+member(5,[1,2,3]) = true.'},
+  {id:'m3q5',lv:'med',text:'Qual o principal perigo de usar <code>\\+</code>?',opts:['Pode causar loop infinito','Não é negação lógica — falha ≠ falso (apenas "não provável")','Só funciona com números','Não é padrão ISO Prolog'],ans:1,exp:'\\+rico(X) é verdadeiro se rico(X) não pode ser provado — mas X pode ser livre! \\+ não liga variáveis: \\+(X=5) falha, não liga X=5. É "closed world assumption".'},
+  {id:'m3q6',lv:'hard',text:'Como contar quantas soluções existem para um objetivo Goal?',opts:['count(Goal, N)','aggregate_all(count, Goal, N)','findall(_,Goal,L), length(L,N)','Não é possível em Prolog padrão'],ans:2,exp:'O padrão ISO é: findall(_,Goal,L), length(L,N). Isso coleta todas as soluções em L e conta. aggregate_all existe em SWI mas não é padrão.'},
+  {id:'m3q7',lv:'hard',text:'Qual problema ocorre com <code>ou(X,Y) :- X ; Y.</code> se X não é determinístico?',opts:['Sintaxe inválida','Deixa pontos de escolha abertos — Y pode ser tentado mesmo depois de X ter sucesso','X e Y não podem ser variáveis','Não há problema'],ans:1,exp:'Se X tem sucesso mas deixa pontos de escolha, Y ainda pode ser tentado via backtracking. Para OR determinístico: (X -> true ; Y).'},
+  {id:'m3q8',lv:'hard',text:'<code>forall(Cond, Acao)</code> é equivalente a:',opts:['Cond, Acao','Cond ; Acao','\\+(Cond, \\+Acao)','findall(_,Cond,_)'],ans:2,exp:'forall(C,A) = "para todo C, A é verdadeiro" = não existe C que falha em A = \\+(C, \\+A). Se não há nenhum C, forall é true (vacuamente verdadeiro).'},
+  {id:'m3q9',lv:'expert',text:'Diferença entre <code>asserta(f)</code> e <code>assertz(f)</code>:',opts:['São idênticos','asserta adiciona NO INÍCIO; assertz adiciona NO FINAL das cláusulas do predicado','assertz é mais seguro','asserta e assertz são obsoletos'],ans:1,exp:'"asserta" = assert at the beginning (antes das cláusulas existentes). "assertz" = assert at the z-end (depois). A ordem afeta qual cláusula é tentada primeiro.'}
+]},
+
+{id:4,title:'O Corte (!)',sub:'Controlando o Backtracking',
+content:`<div class="content">
+<h2>O Corte</h2>
+<p>O corte <code>!</code> é um objetivo especial que, quando executado, <strong>compromete</strong> todas as escolhas feitas na cláusula atual — descartando alternativas não exploradas.</p>
+${code(`% SEM corte — testa ambas as cláusulas
+max_sem(X, Y, X) :- X >= Y.
+max_sem(X, Y, Y) :- Y >  X.    % redundante se X >= Y já foi testado
+
+% COM corte — eficiente
+max(X, Y, X) :- X >= Y, !.     % Se X>=Y, corta e retorna X
+max(_, Y, Y).                  % Só chega aqui se X < Y`)}
+<h3>Corte Verde vs Corte Vermelho</h3>
+${code(`% VERDE: só melhora eficiência, NÃO muda o resultado lógico
+fatorial(0, 1) :- !.            % corte verde: sem ele, a 2ª cláusula seria tentada com N=0
+fatorial(N, F) :- N>0, N1 is N-1, fatorial(N1,F1), F is N*F1.
+
+% VERMELHO: MUDA a semântica — remover o ! daria resultados diferentes
+classifica(X, pos) :- X > 0, !.
+classifica(X, neg) :- X < 0, !.
+classifica(0, zero).
+% Sem !, classifica(1, zero) poderia ser verdadeiro!`)}
+<h3>Negação com corte</h3>
+${code(`% Implementação manual de \\+
+nao(Objetivo) :- call(Objetivo), !, fail.
+nao(_).
+
+% if-then-else com ->
+absoluto(X, A) :-
+    ( X >= 0 -> A = X ; A is -X ).
+% -> é como um "corte mole": compromete dentro do if-then-else
+% mas não afeta pontos de escolha externos`)}
+<h3>once/1</h3>
+${code(`% once(G) = pega apenas a primeira solução de G
+?- once(member(X, [1,2,3])). % X = 1 (apenas um resultado)`)}
+</div>`,
+questions:[
+  {id:'m4q0',lv:'easy',text:'O corte <code>!</code> em Prolog:',opts:['Elimina variáveis do escopo','Compromete a cláusula atual, removendo pontos de escolha restantes','Apaga fatos da base de dados','Termina o programa imediatamente'],ans:1,exp:'"!" é um objetivo que sempre tem sucesso. Mas ao ser executado, remove todos os pontos de escolha criados desde a chamada do predicado atual — impedindo backtracking nessa cláusula.'},
+  {id:'m4q1',lv:'easy',text:'Um "corte verde" é:',opts:['Um corte que muda a semântica do programa','Um corte que apenas melhora eficiência SEM alterar os resultados lógicos','Um corte dentro de predicados de lista','Um corte usado com negação'],ans:1,exp:'Corte verde = poderia ser removido e o programa daria os mesmos respostas (apenas mais lentamente). É semanticamente inerte — só evita trabalho redundante.'},
+  {id:'m4q2',lv:'easy',text:'Após o <code>!</code> ser executado, quais pontos de escolha são descartados?',opts:['Apenas os da cláusula atual','Da cláusula atual e de seus ancestrais até o objetivo que disparou o predicado','De todas as cláusulas do programa','Nenhum é descartado'],ans:1,exp:'O ! descarta: (1) as cláusulas alternativas do predicado corrente que não foram tentadas ainda. Isso significa que se houver backtracking externo, ele não pode mais entrar nesse predicado pela mesma chamada.'},
+  {id:'m4q3',lv:'med',text:'<code>teste(1) :- !. teste(2). ?- teste(X).</code>',opts:['X=1, depois X=2','X=1 apenas','X=2','false'],ans:1,exp:'Prolog tenta teste(1): X=1 e executa !. O corte impede tentar teste(2). Resultado: apenas X=1.'},
+  {id:'m4q4',lv:'med',text:'Melhor implementação de <code>maximo/3</code> com corte:',opts:['maximo(X,Y,X):-X>Y,!. maximo(_,Y,Y).','maximo(X,Y,X):-X>=Y,!. maximo(_,Y,Y).','maximo(X,Y,Z):-Z is max(X,Y).','maximo(X,_,X).'],ans:1,exp:'"X>=Y" cobre o caso de empate (retorna X quando iguais). Com !, a segunda cláusula só é alcançada se X<Y. Usar Z is max(X,Y) também funciona mas é diferente.'},
+  {id:'m4q5',lv:'med',text:'O "corte vermelho" é problemático porque:',opts:['Usa muita memória','Altera a semântica lógica — o programa depende da ordem das cláusulas','Não funciona em todos os interpretadores','É muito lento'],ans:1,exp:'Corte vermelho: remover o ! muda o comportamento. O programa só é correto SE as cláusulas estão nessa ordem específica. Isso dificulta manutenção e raciocínio lógico.'},
+  {id:'m4q6',lv:'hard',text:'<code>once(Goal)</code> é equivalente a:',opts:['Goal','(Goal -> true ; fail)','findall(_,Goal,[_|_])','\\+ \\+ Goal'],ans:1,exp:'"(Goal -> true ; fail)" executa Goal: se tem sucesso, retorna true e corta os pontos de escolha de Goal. Se falha, retorna false. Equivalente a once/1.'},
+  {id:'m4q7',lv:'hard',text:'<code>a(1). a(2). a(3). b:-a(X),write(X),X>1,!,write(ok). ?-b.</code> imprime:',opts:['1ok','12ok','123ok','ok'],ans:1,exp:'Prolog tenta a(X): X=1, write(1)→imprime "1". X>1? 1>1=false, backtrack. X=2, write(2)→imprime "2". 2>1=true. Executa !,write(ok). Saída: "12ok".'},
+  {id:'m4q8',lv:'hard',text:'Por que usar cortes num predicado de classificação melhora o desempenho?',opts:['Não melhora','Evita testar condições mutuamente exclusivas depois de já ter encontrado a classe correta','Permite backtracking mais rápido','Aumenta a aridade dos predicados'],ans:1,exp:'Uma vez que classifica(5, pos) tem sucesso (5>0, !), o corte impede que Prolog tente as outras cláusulas. Sem o corte, mesmo após encontrar "pos", as demais condições seriam testadas.'},
+  {id:'m4q9',lv:'expert',text:'Por que <code>(Cond -> Then ; Else)</code> é melhor que usar <code>;</code> sozinho?',opts:['-> é mais rápido','-> age como corte "mole" — compromete apenas dentro do if-then-else, não afeta pontos de escolha externos','-> funciona com variáveis não ligadas','São equivalentes'],ans:1,exp:'"Cond -> Then" é um corte soft: se Cond sucede, Then é executado sem alternativas — mas o ; ainda permite o Else se o bloco todo falhar externamente. O ; sozinho pode deixar pontos de escolha problemáticos.'}
+]},
+
+{id:5,title:'Busca sem Informação',sub:'BFS, DFS e Variações em Prolog',
+content:`<div class="content">
+<h2>Busca Cega</h2>
+<p>Algoritmos de busca sem informação (cega) exploram o espaço de estados sem conhecimento do objetivo, exceto para reconhecê-lo.</p>
+<h3>Grafo de exemplo</h3>
+${code(`% aresta(Origem, Destino)
+aresta(a, b). aresta(a, c). aresta(b, d).
+aresta(b, e). aresta(c, f). aresta(d, g).`)}
+<h3>DFS em Prolog — Natural!</h3>
+${code(`% DFS é o comportamento padrão do Prolog (recursão profunda primeiro)
+dfs(Goal, Goal, _, [Goal]).
+dfs(Start, Goal, Visited, [Start|Path]) :-
+    aresta(Start, Next),
+    \\+ member(Next, Visited),   % evitar ciclos
+    dfs(Next, Goal, [Next|Visited], Path).
+
+% ?- dfs(a, g, [a], Path).`)}
+<h3>BFS em Prolog — Usa fila</h3>
+${code(`% BFS: mantém fila de caminhos a expandir
+bfs([[Goal|Resto]|_], Goal, [Goal|Resto]).
+bfs([[Node|Caminho]|Fila], Goal, Path) :-
+    findall([Viz,Node|Caminho],
+            (aresta(Node,Viz), \\+ member(Viz,[Node|Caminho])),
+            Filhos),
+    append(Fila, Filhos, NovaFila),   % FIFO: adiciona ao final
+    bfs(NovaFila, Goal, Path).
+
+% Usar: bfs([[inicio]], objetivo, Caminho)`)}
+<h3>Comparação dos algoritmos</h3>
+<ul>
+  <li><strong>BFS:</strong> Completo ✓ | Ótimo (custo uniforme) ✓ | Memória O(b^d) — alto</li>
+  <li><strong>DFS:</strong> Não ótimo | Baixa memória O(bd) | Pode não terminar sem controle de ciclos</li>
+  <li><strong>DFS Limitado:</strong> DFS com limite de profundidade — evita loops infinitos</li>
+  <li><strong>ID-DFS:</strong> DFS iterativo em profundidade — memória do DFS + completude do BFS</li>
+</ul>
+</div>`,
+questions:[
+  {id:'m5q0',lv:'easy',text:'BFS explora os nós:',opts:['Indo o mais fundo possível primeiro','Nível por nível (largura primeiro)','Aleatoriamente','Por custo crescente'],ans:1,exp:'BFS = Breadth-First Search. Explora todos os nós no nível d antes de passar para o nível d+1. Garante encontrar o caminho mais curto (em número de passos).'},
+  {id:'m5q1',lv:'easy',text:'Qual estrutura de dados BFS usa para controlar a fronteira?',opts:['Pilha (LIFO)','Fila (FIFO)','Árvore binária','Conjunto hash'],ans:1,exp:'BFS usa fila FIFO: novos nós são adicionados ao final, e o próximo a expandir é o do início. Isso garante que nós mais rasos sejam explorados antes.'},
+  {id:'m5q2',lv:'easy',text:'DFS explora os nós:',opts:['Nível por nível','O mais fundo possível antes de voltar (profundidade primeiro)','Pelo menor custo','Em ordem aleatória'],ans:1,exp:'DFS = Depth-First Search. Segue um caminho até não poder mais avançar (sem filhos ou ciclos), então volta (backtracking) para tentar outro caminho.'},
+  {id:'m5q3',lv:'med',text:'BFS é completo (sempre encontra solução se existe)?',opts:['Não, pode entrar em loop','Sim, se o fator de ramificação for finito','Apenas para grafos acíclicos','Apenas se o objetivo estiver no nível 1'],ans:1,exp:'BFS é completo para grafos com fator de ramificação finito b. Ele sistematicamente expande todos os nós a distância d antes de ir para d+1, garantindo encontrar qualquer objetivo acessível.'},
+  {id:'m5q4',lv:'med',text:'Complexidade de tempo do BFS é:',opts:['O(n log n)','O(b^d) onde b=ramificação e d=profundidade da solução','O(d²)','O(1)'],ans:1,exp:'No pior caso, BFS expande todos os nós até a profundidade d. Com fator de ramificação b, isso dá b + b² + ... + b^d = O(b^d) nós.'},
+  {id:'m5q5',lv:'med',text:'Quando preferir DFS em vez de BFS?',opts:['Quando a solução é rasa','Quando a memória é limitada ou a solução está em grande profundidade','Quando o grafo é pequeno','Nunca'],ans:1,exp:'DFS usa memória O(bd) — linear — vs BFS O(b^d) — exponencial. Para espaços de busca profundos onde memória é crítica, DFS é preferível (mesmo não sendo ótimo).'},
+  {id:'m5q6',lv:'hard',text:'Busca em Aprofundamento Iterativo (ID-DFS) combina:',opts:['BFS e busca aleatória','Memória do DFS + completude/otimalidade do BFS','Velocidade do DFS + otimalidade do A*','Greedy e DFS'],ans:1,exp:'ID-DFS faz DFS com limite L=0,1,2,... até encontrar. Memória = O(bd) como DFS. Completo e ótimo como BFS. O retrabalho é pequeno: O(b^d) total.'},
+  {id:'m5q7',lv:'hard',text:'Por que DFS é natural em Prolog?',opts:['Prolog tem um módulo especial de DFS','A estratégia de resolução padrão do Prolog já é depth-first via backtracking','Prolog usa pilha implícita para BFS','DFS é mais eficiente em Prolog'],ans:1,exp:'Prolog usa resolução SLD que explora a primeira cláusula disponível e faz backtracking quando falha. Isso É DFS naturalmente. Para BFS, é preciso simular explicitamente com uma fila.'},
+  {id:'m5q8',lv:'hard',text:'Como evitar loops infinitos na busca em grafo?',opts:['Usar apenas BFS','Manter lista de nós visitados e verificar antes de expandir','Limitar o tempo de execução','Não é possível em Prolog'],ans:1,exp:'Verificar "\\+ member(Proximo, Visitados)" antes de expandir. Em grafos, um nó pode ser alcançado por múltiplos caminhos — sem controle de visitados, entraríamos em ciclos.'},
+  {id:'m5q9',lv:'expert',text:'Qual algoritmo de busca cega é ótimo para grafos com custos variados nas arestas?',opts:['BFS','DFS','Busca de Custo Uniforme (Dijkstra)','ID-DFS'],ans:2,exp:'BFS é ótimo apenas quando todos os passos têm custo igual. Para custos variados, Busca de Custo Uniforme (expande pelo menor custo acumulado g(n)) é a versão ótima — equivale ao algoritmo de Dijkstra.'}
+]},
+
+{id:6,title:'Busca com Informação',sub:'Heurísticas, Greedy e A* em Prolog',
+content:`<div class="content">
+<h2>Busca Informada</h2>
+<p>Usa uma <strong>função heurística h(n)</strong> — estimativa do custo do nó n até o objetivo — para guiar a busca de forma mais eficiente.</p>
+<h3>A* — o algoritmo principal</h3>
+${code(`% f(n) = g(n) + h(n)
+% g(n) = custo real do início até n
+% h(n) = estimativa heurística de n até o objetivo
+
+% Implementação A* em Prolog
+a_estrela(Inicio, Objetivo, Caminho) :-
+    heuristica(Inicio, H),
+    a_aux([(H,0,[Inicio])], Objetivo, Rev),
+    reverse(Rev, Caminho).
+
+% Fronteira ordenada por f = g + h
+a_aux([(_, _, [Obj|R])|_], Obj, [Obj|R]).
+a_aux([(_, G, [N|C])|Abertos], Obj, Path) :-
+    findall((F1, G1, [Viz,N|C]),
+        (aresta(N, Viz, Custo),
+         \\+ member(Viz, [N|C]),
+         G1 is G + Custo,
+         heuristica(Viz, H),
+         F1 is G1 + H),
+        Filhos),
+    append(Abertos, Filhos, AB1),
+    msort(AB1, AB2),   % ordena por f (menor primeiro)
+    a_aux(AB2, Obj, Path).`)}
+<h3>Heurística Admissível e Consistente</h3>
+<ul>
+  <li><strong>Admissível:</strong> h(n) ≤ custo real até o objetivo (nunca superestima) → A* é ótimo</li>
+  <li><strong>Consistente (monotona):</strong> h(n) ≤ c(n,n') + h(n') → implica admissível + A* nunca reabre nós</li>
+</ul>
+${code(`% Exemplo: Distância Manhattan para grade 2D
+% Admissível para movimentos nos 4 sentidos (não diagonal)
+heuristica(ponto(X1,Y1), ponto(X2,Y2), H) :-
+    H is abs(X2-X1) + abs(Y2-Y1).`)}
+<h3>Greedy vs A*</h3>
+${code(`% Greedy: usa só h(n) — rápido mas não ótimo
+% A*:     usa f(n)=g(n)+h(n) — ótimo se h admissível`)}
+</div>`,
+questions:[
+  {id:'m6q0',lv:'easy',text:'O que é uma heurística na busca com informação?',opts:['Um algoritmo de ordenação','Uma estimativa do custo do estado atual até o objetivo','Um caminho garantidamente ótimo','Uma regra de poda arbitrária'],ans:1,exp:'h(n) estima o custo restante para atingir o objetivo a partir de n. Heurísticas guiam a busca para explorar estados mais "promissores" primeiro.'},
+  {id:'m6q1',lv:'easy',text:'No algoritmo A*, f(n) é calculado como:',opts:['f(n) = h(n) apenas','f(n) = g(n) apenas','f(n) = g(n) + h(n)','f(n) = g(n) × h(n)'],ans:2,exp:'f(n) = g(n) + h(n): g(n) é o custo real do início até n; h(n) é a estimativa heurística de n até o objetivo. A* equilibra custo real e estimativa.'},
+  {id:'m6q2',lv:'easy',text:'g(n) no algoritmo A* representa:',opts:['A estimativa heurística','O custo real acumulado do início até n','O fator de ramificação','O número de nós expandidos'],ans:1,exp:'g(n) = custo real do caminho percorrido do nó inicial até n. É exato, não estimado. Cresce conforme avançamos no caminho.'},
+  {id:'m6q3',lv:'med',text:'A busca Greedy (gulosa) usa:',opts:['f(n) = g(n) + h(n)','Apenas h(n), ignorando o custo real g(n)','Apenas g(n), ignorando a heurística','A busca aleatória com guia'],ans:1,exp:'Greedy Best-First usa só h(n): vai direto para o estado que parece mais próximo do objetivo. Rápida, mas não ótima e pode entrar em loops.'},
+  {id:'m6q4',lv:'med',text:'A* é ótimo quando a heurística é:',opts:['Qualquer função positiva','Admissível — nunca superestima o custo real','Consistente — diferença entre nós vizinhos ≤ custo da aresta','Tanto admissível quanto consistente (ambas necessárias)'],ans:1,exp:'Admissibilidade (h(n) ≤ h*(n)) é suficiente para garantir que A* encontra a solução ótima. Consistência é mais forte e garante também que nós fechados não precisam ser reabertos.'},
+  {id:'m6q5',lv:'med',text:'Uma heurística é admissível quando:',opts:['Sempre iguala o custo real','Nunca superestima o custo real para chegar ao objetivo','Nunca subestima','É calculada em O(1)'],ans:1,exp:'h(n) admissível: h(n) ≤ h*(n) para todo n, onde h*(n) é o custo real ótimo. Isso garante que A* não descarta o caminho ótimo prematuramente.'},
+  {id:'m6q6',lv:'hard',text:'Principal vantagem do IDA* sobre A*:',opts:['IDA* é mais rápido','IDA* usa muito menos memória — O(d) em vez de O(b^d)','IDA* é mais simples de implementar','IDA* funciona sem heurística'],ans:1,exp:'A* mantém todos os nós na fronteira em memória: O(b^d). IDA* faz DFS iterativo com limite f, usando memória O(d) — linear na profundidade. Ideal quando memória é crítica.'},
+  {id:'m6q7',lv:'hard',text:'A distância Manhattan é admissível para:',opts:['Grafos arbitrários','Grades 2D sem movimentos diagonais (como o Puzzle 8)','Qualquer problema de caminhos','Apenas problemas 1D'],ans:1,exp:'Para o Puzzle-8 em grade: cada peça precisa de pelo menos (dx+dy) movimentos para chegar à posição correta (sem diagonais). Manhattan nunca superestima → admissível.'},
+  {id:'m6q8',lv:'hard',text:'A busca Greedy Best-First é completa (sempre acha solução se existe)?',opts:['Sim, sempre','Não — pode entrar em ciclos infinitos sem detecção de estados visitados','Apenas para árvores','Apenas se a heurística for perfeita'],ans:1,exp:'Greedy pode seguir eternamente por caminhos que parecem bons localmente mas nunca chegam ao objetivo. Sem controle de estados visitados em grafos, pode ciclar.'},
+  {id:'m6q9',lv:'expert',text:'Uma heurística consistente (monotona) implica:',opts:['Apenas admissibilidade','Admissibilidade E que A* nunca precisa reabrir nós já expandidos','Que o caminho encontrado é sempre ótimo sem verificação','Que h(n) = h*(n) para todos os nós'],ans:1,exp:'Consistência: h(n) ≤ c(n,n\') + h(n\'). Implica admissibilidade E que f(n) é não-decrescente ao longo de qualquer caminho → A* pode usar lista fechada (closed list) sem reabrir nós.'}
+]},
+
+{id:7,title:'Busca Competitiva',sub:'Minimax e Poda Alfa-Beta em Prolog',
+content:`<div class="content">
+<h2>Jogos de Dois Jogadores</h2>
+<p>Minimax é o algoritmo base para jogos determinísticos, de dois jogadores com informação perfeita (como xadrez, jogo da velha).</p>
+<h3>Algoritmo Minimax</h3>
+${code(`% Minimax: MAX quer maximizar, MIN quer minimizar
+minimax(Estado, 0, _, Valor) :-
+    !, avalia(Estado, Valor).      % limite de profundidade
+
+minimax(Estado, _, _, Valor) :-
+    \\+ movimento(Estado, _),
+    !, avalia(Estado, Valor).      % estado terminal
+
+minimax(Estado, Prof, max, MelhorVal) :-
+    findall(M, movimento(Estado,M), Movs), Movs \\= [],
+    maplist(valor_filho(Estado, Prof, min), Movs, Vals),
+    max_list(Vals, MelhorVal).
+
+minimax(Estado, Prof, min, MelhorVal) :-
+    findall(M, movimento(Estado,M), Movs), Movs \\= [],
+    maplist(valor_filho(Estado, Prof, max), Movs, Vals),
+    min_list(Vals, MelhorVal).
+
+valor_filho(Estado, Prof, Vez, Mov, Val) :-
+    aplica(Estado, Mov, NovoEstado),
+    P1 is Prof - 1,
+    minimax(NovoEstado, P1, Vez, Val).`)}
+<h3>Poda Alfa-Beta</h3>
+${code(`% α = melhor para MAX até agora (limite inferior)
+% β = melhor para MIN até agora (limite superior)
+% Poda: se β ≤ α, cortar — o pai nunca escolherá este nó
+
+% Complexidade Minimax: O(b^m)
+% Complexidade Alfa-Beta melhor caso: O(b^(m/2))
+% → pode explorar o dobro da profundidade no mesmo tempo!
+
+% Alfa-beta é mais eficaz quando movimentos são
+% ordenados do melhor para o pior`)}
+<h3>Funções de Avaliação</h3>
+${code(`% Para o Jogo da Velha (exemplo simples)
+avalia(Estado, 100)  :- vencedor(Estado, x), !.
+avalia(Estado, -100) :- vencedor(Estado, o), !.
+avalia(_, 0).                      % empate ou incompleto`)}
+</div>`,
+questions:[
+  {id:'m7q0',lv:'easy',text:'Minimax é usado para:',opts:['Busca em grafos gerais','Jogos de dois jogadores de soma zero (um ganha = outro perde)','Otimização sem adversário','Aprendizado de máquina'],ans:1,exp:'Minimax é o algoritmo clássico para jogos de dois jogadores, soma zero, determinísticos, informação perfeita. Ex: xadrez, damas, jogo da velha.'},
+  {id:'m7q1',lv:'easy',text:'O jogador MAX quer:',opts:['Minimizar o valor de utilidade','Maximizar o valor de utilidade','Equilibrar os valores','Ignorar a heurística'],ans:1,exp:'MAX representa o agente (nós). Quer o maior valor de utilidade possível — o melhor resultado para si. MIN representa o oponente, que quer o menor valor.'},
+  {id:'m7q2',lv:'easy',text:'O jogador MIN quer:',opts:['Maximizar o valor','Minimizar o valor','Alcançar utilidade zero','Bloquear MAX sem estratégia'],ans:1,exp:'MIN representa o oponente. Quer minimizar o valor de utilidade (que é definido da perspectiva de MAX). Na prática, MIN maximiza seus próprios ganhos.'},
+  {id:'m7q3',lv:'med',text:'Alpha (α) na poda alfa-beta representa:',opts:['O pior valor que MIN pode garantir','O melhor valor que MAX pode garantir até agora (limite inferior para MAX)','A profundidade atual da árvore','O número de nós podados'],ans:1,exp:'α é o melhor valor que MAX pode garantir a partir de nós já analisados. Se um nó MIN tem valor ≤ α, MAX nunca escolherá esse nó → pode ser podado.'},
+  {id:'m7q4',lv:'med',text:'Beta (β) na poda alfa-beta representa:',opts:['O melhor valor que MAX pode garantir','O melhor valor que MIN pode garantir até agora (limite superior para MAX)','A estimativa heurística','O fator de ramificação'],ans:1,exp:'β é o melhor valor que MIN pode garantir (= pior para MAX). Se um nó MAX tem valor ≥ β, MIN nunca escolherá esse ramo → pode ser podado.'},
+  {id:'m7q5',lv:'med',text:'A poda alfa-beta elimina:',opts:['Todos os nós abaixo da profundidade limite','Ramos que não podem influenciar a decisão minimax final','Nós com valor negativo','Apenas nós folha'],ans:1,exp:'Alfa-beta poda ramos que provadamente não afetarão o valor minimax — porque o pai já tem uma opção melhor (para MAX) ou pior (para MIN). O resultado final é IDÊNTICO ao minimax completo.'},
+  {id:'m7q6',lv:'hard',text:'A complexidade de tempo do Minimax é:',opts:['O(b × m)','O(b^m) onde b=ramificação e m=profundidade máxima','O(m²)','O(b log m)'],ans:1,exp:'Minimax explora TODA a árvore de jogo até profundidade m. Com b movimentos por nível, há b^m nós folha no pior caso: O(b^m).'},
+  {id:'m7q7',lv:'hard',text:'No melhor caso, a complexidade da poda alfa-beta é:',opts:['O(b^m) — igual ao Minimax','O(b^(m/2)) — pode explorar o dobro da profundidade','O(log b^m)','O(m)'],ans:1,exp:'No melhor caso (movimentos perfeitamente ordenados), alfa-beta poda metade da árvore: O(b^(m/2)). Com b=35 (xadrez), isso é enorme: pode explorar 2× mais profundamente no mesmo tempo.'},
+  {id:'m7q8',lv:'hard',text:'A poda alfa-beta é mais eficaz quando:',opts:['Os movimentos são ordenados do pior ao melhor','Os movimentos são ordenados do melhor ao pior para cada jogador','A árvore é completamente aleatória','A profundidade é muito pequena'],ans:1,exp:'Com ordenação ótima (melhor movimento primeiro), alfa-beta atinge O(b^(m/2)). Na prática, usa-se ordenação heurística (killer moves, transposition tables) para aproximar esse ideal.'},
+  {id:'m7q9',lv:'expert',text:'A busca por quiescência (quiescence search) resolve:',opts:['Loops na árvore de jogo','O efeito horizonte — avaliação apenas de posições estáveis (sem capturas pendentes)','A ordenação de movimentos','A profundidade ilimitada'],ans:1,exp:'O efeito horizonte: o agente pode evitar uma perda inevitável "empurrando" além do limite de profundidade. Quiescence search continua após o limite apenas em posições instáveis (com capturas), garantindo avaliações estáveis.'}
+]},
+
+{id:8,title:'Busca Local',sub:'Hill Climbing, Simulated Annealing e Genéticos',
+content:`<div class="content">
+<h2>Busca Local</h2>
+<p>Usada quando o <strong>caminho não importa</strong> — só a solução final (configuração completa). Ex: N-Rainhas, coloração de grafos, otimização.</p>
+<h3>Hill Climbing em Prolog</h3>
+${code(`% Hill Climbing: sempre move para o melhor vizinho
+hill_climbing(Estado, Solucao) :-
+    objetivo(Estado), !, Solucao = Estado.
+
+hill_climbing(Estado, Solucao) :-
+    findall(V-Viz, (vizinho(Estado,Viz), avalia(Viz,V)), Vzs),
+    Vzs \\= [],
+    max_member(_-Melhor, Vzs),    % melhor vizinho
+    avalia(Estado, VAtual),
+    avalia(Melhor, VMelhor),
+    VMelhor > VAtual,             % subida?
+    !,
+    hill_climbing(Melhor, Solucao).
+
+hill_climbing(Estado, Estado).    % preso em ótimo local`)}
+<h3>Problemas do Hill Climbing</h3>
+<ul>
+  <li><strong>Ótimo local:</strong> um pico menor que o global</li>
+  <li><strong>Planalto:</strong> vizinhos com mesmo valor — sem direção clara</li>
+  <li><strong>Crista:</strong> declives que exigem movimentos laterais</li>
+</ul>
+<h3>Soluções</h3>
+${code(`% Random Restart: reiniciar de diferentes posições
+% Simulated Annealing: aceita movimentos piores com P = e^(-ΔE/T)
+%   T (temperatura) começa alta e vai diminuindo (cooling schedule)
+%   Com T→0, SA se comporta como Hill Climbing
+
+% Busca de feixe (Beam Search): mantém k melhores estados
+% Algoritmos genéticos: população + seleção + crossover + mutação`)}
+</div>`,
+questions:[
+  {id:'m8q0',lv:'easy',text:'Hill climbing sempre move para:',opts:['O vizinho aleatório','O melhor estado vizinho (maior valor da função objetivo)','O vizinho mais distante','O estado inicial'],ans:1,exp:'Hill climbing (subida de encosta): em cada passo, move para o vizinho com maior valor na função objetivo. Não guarda histórico — só o estado atual importa.'},
+  {id:'m8q1',lv:'easy',text:'O que é um ótimo local no contexto de busca local?',opts:['A solução global ideal','Um estado melhor que todos os seus vizinhos, mas não necessariamente o melhor global','Um estado com valor zero','O estado inicial do problema'],ans:1,exp:'Ótimo local: todos os vizinhos têm valor menor, então hill climbing para — mas pode existir um estado melhor em outra região do espaço que não pode ser atingido sem "descer".'},
+  {id:'m8q2',lv:'easy',text:'Simulated Annealing aceita movimentos para estados piores?',opts:['Nunca','Sim, com probabilidade que decresce com o tempo (temperatura)','Sempre que o estado pior existir','Apenas nas primeiras iterações com certeza'],ans:1,exp:'SA aceita estado pior E com probabilidade P=e^(-ΔE/T). Com temperatura T alta, aceita facilmente (exploração). Com T baixa, quase nunca aceita (explotação). Isso permite escapar de ótimos locais.'},
+  {id:'m8q3',lv:'med',text:'Random Restart ajuda o Hill Climbing ao:',opts:['Aumentar a velocidade de convergência','Permitir múltiplos pontos de partida, reduzindo chance de ficar em ótimo local','Usar heurísticas melhores','Eliminar ótimos locais do espaço'],ans:1,exp:'Reiniciar de posições aleatórias diferentes aumenta a probabilidade de encontrar a bacia de atração do ótimo global. É simples e eficaz para problemas com muitos ótimos locais.'},
+  {id:'m8q4',lv:'med',text:'"Temperatura" no Simulated Annealing controla:',opts:['A velocidade de processamento','A probabilidade de aceitar estados piores — alta temperatura = maior aceitação','O número de vizinhos gerados','A profundidade máxima da busca'],ans:1,exp:'Temperatura T alta → e^(-ΔE/T) → 1: aceita quase qualquer coisa (exploração aleatória). T baixa → e^(-ΔE/T) → 0 se ΔE < 0: só aceita melhorias (como hill climbing). O "cooling schedule" reduz T gradualmente.'},
+  {id:'m8q5',lv:'med',text:'Algoritmos genéticos evoluem soluções usando:',opts:['Gradiente do espaço de busca','Seleção + crossover (recombinação) + mutação sobre uma população','Apenas mutações aleatórias','Comparação exaustiva de todos os estados'],ans:1,exp:'GA mantém uma população de soluções. Seleciona as melhores (seleção), combina-as (crossover) e aplica pequenas mudanças (mutação). Inspirados na evolução natural.'},
+  {id:'m8q6',lv:'hard',text:'Steepest-ascent vs First-choice Hill Climbing:',opts:['São idênticos','Steepest avalia TODOS os vizinhos e escolhe o melhor; First-choice aceita o primeiro vizinho melhor','First-choice é sempre mais lento','Steepest é não-determinístico'],ans:1,exp:'Steepest-ascent: custo O(n) por passo (avalia todos os n vizinhos). First-choice: gera vizinhos aleatoriamente até achar um melhor — eficiente quando há muitos vizinhos.'},
+  {id:'m8q7',lv:'hard',text:'Por que o problema N-Rainhas é adequado para busca local?',opts:['Porque o espaço é pequeno','Porque só a configuração final importa (n rainhas colocadas), não o caminho até ela','Porque tem solução única','Porque é fácil calcular a heurística'],ans:1,exp:'N-Rainhas é formulado com estado completo: todas as n rainhas já estão no tabuleiro, e buscamos configuração sem conflitos. Movemos uma rainha por vez (vizinhos) e avaliamos os conflitos.'},
+  {id:'m8q8',lv:'hard',text:'LRTA* (Learning Real-Time A*) difere do hill climbing porque:',opts:['É mais lento','Aprende e atualiza os valores heurísticos durante a busca (online learning)','Usa uma população de estados','Garante encontrar o ótimo global sempre'],ans:1,exp:'LRTA* é busca em tempo real: faz um passo, atualiza h(estado_anterior) ← max(h atual, c(aresta) + h(próximo)), aprende com a experiência. Converge mesmo com heurísticas ruins.'},
+  {id:'m8q9',lv:'expert',text:'Beam Search troca:',opts:['Velocidade por qualidade da heurística','Completude/otimalidade por eficiência de memória (mantém apenas k melhores estados)','Memória por velocidade de convergência','Qualidade pela garantia de término'],ans:1,exp:'Beam Search mantém apenas os k melhores estados (beam width k). k=1 = hill climbing. k=∞ = BFS. Troca garantias (completude, otimalidade) por eficiência de memória — pode perder a solução ótima.'}
+]}
+];
+
+// ── SIMULADOS ──────────────────────────────────────────
+const SIMS=[
+  {id:0,title:'Simulado 1',desc:'Fundamentos Básicos',qs:['m0q0','m0q1','m0q2','m1q0','m1q1','m1q2','m2q0','m2q1','m2q2','m3q0']},
+  {id:1,title:'Simulado 2',desc:'Prolog: Sintaxe e Lógica',qs:['m0q3','m0q4','m1q3','m1q4','m2q3','m2q4','m3q1','m3q2','m4q0','m4q1']},
+  {id:2,title:'Simulado 3',desc:'Aritmética e Controle',qs:['m2q5','m2q6','m3q3','m3q4','m4q2','m4q3','m4q4','m4q5','m0q5','m1q5']},
+  {id:3,title:'Simulado 4',desc:'Busca Cega',qs:['m5q0','m5q1','m5q2','m5q3','m5q4','m5q5','m5q6','m5q7','m5q8','m5q9']},
+  {id:4,title:'Simulado 5',desc:'Busca Heurística',qs:['m6q0','m6q1','m6q2','m6q3','m6q4','m6q5','m6q6','m6q7','m6q8','m6q9']},
+  {id:5,title:'Simulado 6',desc:'Busca Competitiva',qs:['m7q0','m7q1','m7q2','m7q3','m7q4','m7q5','m7q6','m7q7','m7q8','m7q9']},
+  {id:6,title:'Simulado 7',desc:'Busca Local',qs:['m8q0','m8q1','m8q2','m8q3','m8q4','m8q5','m8q6','m8q7','m8q8','m8q9']},
+  {id:7,title:'Simulado 8',desc:'Prolog Nível Médio',qs:['m0q6','m0q7','m1q6','m1q7','m2q7','m2q8','m3q5','m3q6','m4q6','m4q7']},
+  {id:8,title:'Simulado 9',desc:'Busca Avançada',qs:['m5q6','m5q7','m6q6','m6q7','m7q6','m7q7','m7q8','m8q6','m8q7','m8q8']},
+  {id:9,title:'Simulado 10',desc:'Grande Final — Expert',qs:['m0q8','m0q9','m1q8','m1q9','m2q9','m3q7','m3q8','m3q9','m4q8','m4q9']}
+];
+
+// ── FLAT QUESTION MAP ─────────────────────────────────
+const QS={};
+MODULES.forEach(m=>m.questions.forEach(q=>{QS[q.id]=q;}));
+
+// ── QUIZ STATE ─────────────────────────────────────────
+let quizActive=null; // {questions, idx, answers, source:'mod'|'sim', modId, simId}
+
+function startModQuiz(mid){
+  quizActive={questions:MODULES[mid].questions,idx:0,answers:[],source:'mod',modId:mid};
+  currentView='quiz';
+  renderMain();
+}
+
+function startSim(sid){
+  const qs=SIMS[sid].qs.map(id=>QS[id]);
+  quizActive={questions:qs,idx:0,answers:[],source:'sim',simId:sid};
+  currentView='quiz';
+  renderMain();
+}
+
+function answerQ(optIdx){
+  if(quizActive.answers[quizActive.idx]!==undefined)return;
+  const q=quizActive.questions[quizActive.idx];
+  const correct=optIdx===q.ans;
+  quizActive.answers[quizActive.idx]=optIdx;
+  // record
+  const key=quizActive.source==='sim'?'sim_'+quizActive.simId+'_'+q.id:q.id;
+  recordAnswer(key, correct);
+  // also record for module performance
+  if(quizActive.source==='sim') recordAnswer(q.id, correct);
+  renderMain();
+}
+
+function nextQ(){
+  if(quizActive.idx<quizActive.questions.length-1){quizActive.idx++;renderMain();}
+  else finishQuiz();
+}
+
+function prevQ(){if(quizActive.idx>0){quizActive.idx--;renderMain();}}
+
+function finishQuiz(){currentView=quizActive.source==='sim'?'simResult':'modResult';renderMain();}
+
+// ── RENDER ─────────────────────────────────────────────
+const main=document.getElementById('main');
+
+function renderMain(){
+  if(currentView==='home') renderHome();
+  else if(currentView==='module') renderModule();
+  else if(currentView==='quiz') renderQuiz();
+  else if(currentView==='modResult') renderModResult();
+  else if(currentView==='simResult') renderSimResult();
+  else if(currentView==='simulados') renderSimulados();
+  else if(currentView==='desempenho') renderDesempenho();
+}
+
+function renderHome(){
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  const cards=MODULES.map((m,i)=>{
+    const sc=moduleScore(i);
+    const bar=sc.pct!=null?sc.pct:0;
+    const barColor=sc.pct==null?'var(--border)':sc.pct>=70?'var(--ok)':sc.pct>=40?'var(--warn)':'var(--err)';
+    return`<div class="card" onclick="openModule(${i})">
+      <div class="card-num">Módulo ${i+1}</div>
+      <div class="card-title">${m.title}</div>
+      <div class="card-sub">${m.sub}</div>
+      <div class="card-progress"><div class="card-progress-bar" style="width:${bar}%;background:${barColor}"></div></div>
+      ${sc.pct!=null?`<div style="font-size:12px;color:var(--text2);margin-top:4px">${sc.pct}% (${sc.c}/${sc.t})</div>`:'<div style="font-size:12px;color:var(--text2);margin-top:4px">Não iniciado</div>'}
+    </div>`;
+  }).join('');
+  main.innerHTML=`
+    <div class="section-title">📚 Módulos de Estudo</div>
+    <p style="color:var(--text2);margin-bottom:16px">Clique em um módulo para estudar o conteúdo e praticar os exercícios.</p>
+    <div class="grid">${cards}</div>`;
+}
+
+function openModule(mid){
+  currentMod=mid;
+  currentModTab='content';
+  currentView='module';
+  renderMain();
+}
+
+function renderModule(){
+  const m=MODULES[currentMod];
+  const tabs=['content','quiz'].map((t,i)=>
+    `<button class="tab${currentModTab===t?' active':''}" onclick="switchModTab('${t}')">${['Conteúdo','Exercícios'][i]}</button>`
+  ).join('');
+  let body='';
+  if(currentModTab==='content') body=m.content;
+  else body=buildModQuizPreview(currentMod);
+
+  main.innerHTML=`
+    <div class="module-header">
+      <button class="back-btn" onclick="showView('home')">← Módulos</button>
+      <div>
+        <div style="font-size:12px;color:var(--text2)">Módulo ${currentMod+1}</div>
+        <div style="font-weight:700;font-size:17px">${m.title}</div>
+      </div>
+    </div>
+    <div class="tabs">${tabs}</div>
+    <div>${body}</div>`;
+}
+
+function switchModTab(t){currentModTab=t;renderMain();}
+
+function buildModQuizPreview(mid){
+  const m=MODULES[mid];
+  const sc=moduleScore(mid);
+  const lvLabel={easy:'Fácil',med:'Médio',hard:'Difícil',expert:'Expert'};
+  const qs=m.questions.map((q,i)=>{
+    const p=perf[q.id];
+    const status=p?`${p.c}✓ ${p.w}✗`:'—';
+    return`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:14px">Q${i+1}: <span class="q-level ${q.lv}" style="font-size:11px">${lvLabel[q.lv]}</span> ${q.text.replace(/<[^>]+>/g,'').substring(0,60)}…</span>
+      <span style="font-size:12px;color:var(--text2)">${status}</span>
+    </div>`;
+  }).join('');
+  return`
+    <div style="margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      ${sc.pct!=null?`<div class="score-big" style="font-size:32px">${sc.pct}%</div><div class="score-label">aproveitamento<br>${sc.c}/${sc.t} corretas</div>`:'<div style="color:var(--text2)">Você ainda não fez os exercícios deste módulo.</div>'}
+    </div>
+    ${qs}
+    <button class="btn btn-primary" style="margin-top:16px" onclick="startModQuiz(${mid})">🚀 Iniciar Exercícios (10 questões)</button>`;
+}
+
+function renderQuiz(){
+  const qa=quizActive;
+  const q=qa.questions[qa.idx];
+  const answered=qa.answers[qa.idx]!==undefined;
+  const pct=Math.round((qa.idx/(qa.questions.length))*100);
+  const lvLabel={easy:'Fácil',med:'Médio',hard:'Difícil',expert:'Expert'};
+  const lvColor={easy:'var(--easy)',med:'var(--warn)',hard:'var(--err)',expert:'var(--expert)'};
+
+  const opts=q.opts.map((o,i)=>{
+    let cls='opt';
+    if(answered){
+      if(i===q.ans) cls+=' correct';
+      else if(i===qa.answers[qa.idx]) cls+=' wrong';
+    }
+    return`<button class="opt ${answered?'opt':'opt'}"
+      style="${answered&&i===q.ans?'background:var(--ok-bg);border-color:var(--ok);color:var(--ok)':''}${answered&&i===qa.answers[qa.idx]&&i!==q.ans?'background:var(--err-bg);border-color:var(--err);color:var(--err)':''}"
+      ${answered?'disabled':'onclick="answerQ('+i+')"'}
+      onclick="${!answered?'answerQ('+i+')':''}">${o}</button>`;
+  }).join('');
+
+  const exp=answered?`<div class="explanation">💡 ${q.explanation}</div>`:'';
+  const nav=`<div class="quiz-nav">
+    ${qa.idx>0?`<button class="btn btn-secondary" onclick="prevQ()">← Anterior</button>`:''}
+    ${answered?(qa.idx<qa.questions.length-1?`<button class="btn btn-primary" onclick="nextQ()">Próxima →</button>`:`<button class="btn btn-primary" onclick="finishQuiz()">Ver Resultado ✓</button>`):''}
+    <button class="btn btn-secondary" onclick="abandonQuiz()" style="margin-left:auto">✕ Sair</button>
+  </div>`;
+
+  main.innerHTML=`
+    <div class="quiz-header">
+      <span style="font-size:14px;font-weight:600">${qa.source==='sim'?SIMS[qa.simId].title:'Exercícios — '+MODULES[qa.modId].title}</span>
+      <span style="font-size:13px;color:var(--text2)">${qa.idx+1} / ${qa.questions.length}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>
+    <div class="question-card">
+      <div class="q-level ${q.lv}" style="color:${lvColor[q.lv]}">${lvLabel[q.lv]}</div>
+      <div class="q-text">${q.text}</div>
+      <div class="opts">${opts}</div>
+      ${exp}
+    </div>
+    ${nav}`;
+}
+
+function abandonQuiz(){
+  if(quizActive.source==='sim'){currentView='simulados';}
+  else{currentView='module';currentModTab='quiz';}
+  quizActive=null;
+  renderMain();
+}
+
+function renderModResult(){
+  const qa=quizActive;
+  const correct=qa.answers.filter((a,i)=>a===qa.questions[i].ans).length;
+  const pct=Math.round(correct/qa.questions.length*100);
+  const color=pct>=70?'var(--ok)':pct>=40?'var(--warn)':'var(--err)';
+  main.innerHTML=`
+    <div class="score-card">
+      <div class="score-big" style="color:${color}">${pct}%</div>
+      <div class="score-label">${correct} de ${qa.questions.length} corretas — ${MODULES[qa.modId].title}</div>
+    </div>
+    <div class="highlight-box ${pct>=70?'good':'bad'}">
+      ${pct>=70?'✅ Parabéns! Você domina este módulo.':'⚠️ Revise o conteúdo e tente novamente para fixar melhor.'}
+    </div>
+    <div class="quiz-nav">
+      <button class="btn btn-primary" onclick="startModQuiz(${qa.modId})">🔄 Refazer</button>
+      <button class="btn btn-secondary" onclick="openModule(${qa.modId})">📖 Ver Conteúdo</button>
+      <button class="btn btn-secondary" onclick="showView('home')">← Módulos</button>
+    </div>`;
+}
+
+function renderSimResult(){
+  const qa=quizActive;
+  const correct=qa.answers.filter((a,i)=>a===qa.questions[i].ans).length;
+  const pct=Math.round(correct/qa.questions.length*100);
+  const color=pct>=70?'var(--ok)':pct>=50?'var(--warn)':'var(--err)';
+  const review=qa.questions.map((q,i)=>{
+    const ok=qa.answers[i]===q.ans;
+    return`<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:16px">${ok?'✅':'❌'}</span>
+      <div style="font-size:13px"><strong>Q${i+1}:</strong> ${q.text.replace(/<[^>]+>/g,'').substring(0,80)}…
+      ${!ok?`<br><span style="color:var(--ok)">Correto: ${q.opts[q.ans]}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  main.innerHTML=`
+    <div class="score-card">
+      <div class="score-big" style="color:${color}">${pct}%</div>
+      <div class="score-label">${correct}/10 — ${SIMS[qa.simId].title} — ${SIMS[qa.simId].desc}</div>
+    </div>
+    <div style="margin-top:16px">${review}</div>
+    <div class="quiz-nav" style="margin-top:16px">
+      <button class="btn btn-primary" onclick="startSim(${qa.simId})">🔄 Refazer</button>
+      <button class="btn btn-secondary" onclick="showView('simulados')">← Simulados</button>
+      <button class="btn btn-secondary" onclick="showView('desempenho')">📊 Desempenho</button>
+    </div>`;
+}
+
+function renderSimulados(){
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',i===1));
+  const cards=SIMS.map((s,i)=>{
+    const qs=s.qs.map(id=>QS[id]);
+    const attempts=qs.filter(q=>perf['sim_'+i+'_'+q.id]);
+    const correct=qs.filter(q=>{const p=perf['sim_'+i+'_'+q.id];return p&&p.c>0;}).length;
+    const done=attempts.length===10;
+    const pct=done?Math.round(correct/10*100):null;
+    const cls=done?(pct>=60?'good':'bad'):'';
+    return`<div class="sim-card ${done?'done':''}" onclick="startSim(${i})">
+      <div style="font-size:12px;color:var(--text2)">Simulado ${i+1}</div>
+      <div style="font-weight:700;font-size:15px">${s.title}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:2px">${s.desc}</div>
+      <div class="sim-score ${pct!=null?(pct>=60?'pass':'fail'):'none'}">${pct!=null?pct+'%':'—'}</div>
+      ${done?`<div style="font-size:11px;color:var(--text2)">${correct}/10 corretas</div>`:`<div style="font-size:11px;color:var(--text2)">${attempts.length>0?attempts.length+' resp.':'Não iniciado'}</div>`}
+    </div>`;
+  }).join('');
+  main.innerHTML=`
+    <div class="section-title">📝 Simulados</div>
+    <p style="color:var(--text2);margin-bottom:16px">10 simulados com 10 questões cada. Clique para iniciar ou refazer.</p>
+    <div class="sim-grid">${cards}</div>`;
+}
+
+function renderDesempenho(){
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',i===2));
+  // Calc per-module scores
+  const scores=MODULES.map((m,i)=>{
+    const s=moduleScore(i);
+    return{...s,title:m.title,idx:i};
+  });
+  const attempted=scores.filter(s=>s.t>0);
+  const totalC=scores.reduce((a,s)=>a+s.c,0);
+  const totalT=scores.reduce((a,s)=>a+s.t,0);
+  const overall=totalT?Math.round(totalC/totalT*100):null;
+
+  // Weak and strong
+  const sorted=[...attempted].sort((a,b)=>(a.pct||0)-(b.pct||0));
+  const weak=sorted.slice(0,2);
+  const strong=sorted.slice(-2).reverse();
+
+  const bars=MODULES.map((m,i)=>{
+    const s=scores[i];
+    const pct=s.pct??0;
+    const color=s.pct==null?'var(--border)':s.pct>=70?'var(--ok)':s.pct>=40?'var(--warn)':'var(--err)';
+    return`<div class="perf-module">
+      <div class="perf-label" style="font-size:13px">${i+1}. ${m.title}</div>
+      <div class="perf-bar-wrap"><div class="perf-bar" style="width:${pct}%;background:${color}"></div></div>
+      <div class="perf-pct" style="color:${color}">${s.pct!=null?s.pct+'%':'—'}</div>
+      <div style="font-size:12px;color:var(--text2);min-width:50px">${s.t>0?s.c+'/'+s.t:''}</div>
+    </div>`;
+  }).join('');
+
+  const weakHtml=weak.length===0?'<p style="color:var(--text2)">Faça os exercícios para ver sua análise.</p>':
+    weak.map(s=>`<div class="highlight-box bad" style="margin-bottom:8px">
+      <strong>❌ ${s.title}</strong><br>
+      <span style="font-size:13px;color:var(--text2)">${s.pct}% de aproveitamento — Revise este módulo!</span><br>
+      <button class="btn btn-secondary" style="margin-top:6px;font-size:12px" onclick="openModule(${s.idx})">📖 Estudar</button>
+    </div>`).join('');
+
+  const strongHtml=strong.length===0?'<p style="color:var(--text2)">Ainda sem dados suficientes.</p>':
+    strong.map(s=>`<div class="highlight-box good" style="margin-bottom:8px">
+      <strong>✅ ${s.title}</strong><br>
+      <span style="font-size:13px;color:var(--text2)">${s.pct}% — Você domina este assunto!</span>
+    </div>`).join('');
+
+  // Sim scores
+  const simRows=SIMS.map((s,i)=>{
+    const qs=s.qs.map(id=>QS[id]);
+    const correct=qs.filter(q=>{const p=perf['sim_'+i+'_'+q.id];return p&&p.c>0;}).length;
+    const done=qs.every(q=>perf['sim_'+i+'_'+q.id]);
+    const pct=done?Math.round(correct/10*100):null;
+    const color=pct==null?'var(--text2)':pct>=60?'var(--ok)':'var(--err)';
+    return`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:14px">${s.title} — ${s.desc}</span>
+      <span style="font-size:14px;font-weight:600;color:${color}">${pct!=null?pct+'%':'—'}</span>
+    </div>`;
+  }).join('');
+
+  main.innerHTML=`
+    <div class="section-title">📊 Desempenho</div>
+    ${overall!=null?`<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+      <div class="score-big" style="font-size:40px;color:${overall>=70?'var(--ok)':overall>=40?'var(--warn)':'var(--err)'}">${overall}%</div>
+      <div class="score-label">aproveitamento geral<br>${totalC}/${totalT} questões corretas</div>
+    </div>`:'<p style="color:var(--text2);margin-bottom:16px">Faça os exercícios para ver seu desempenho.</p>'}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div><div style="font-weight:700;margin-bottom:8px;color:var(--err)">⚠️ Pontos Fracos</div>${weakHtml}</div>
+      <div><div style="font-weight:700;margin-bottom:8px;color:var(--ok)">💪 Pontos Fortes</div>${strongHtml}</div>
+    </div>
+
+    <div style="margin-bottom:20px">
+      <div style="font-weight:700;margin-bottom:12px">Por Módulo</div>
+      ${bars}
+    </div>
+
+    <div>
+      <div style="font-weight:700;margin-bottom:8px">Simulados</div>
+      ${simRows}
+    </div>
+
+    <button class="btn btn-secondary" style="margin-top:16px;color:var(--err)" onclick="if(confirm('Limpar todo o progresso?'))resetPerf()">🗑 Limpar Progresso</button>`;
+}
+
+function resetPerf(){perf={};savePerf();renderMain();}
+
+// Initial render
+renderMain();
+</script>
